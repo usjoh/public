@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>The Wonder World of M.C. Escher — for Khoren</title>
+  <meta name="description" content="An interactive, kid-friendly tour through the impossible art of M.C. Escher: tessellations, mirrors, infinite stairs, and more." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23111'/><path d='M16 48 L32 16 L48 48 Z' fill='none' stroke='%23ffd84d' stroke-width='3'/><path d='M24 48 L32 32 L40 48' fill='none' stroke='%23ff5577' stroke-width='3'/></svg>" />
+</head>
+<body>
+  <header class="hero">
+    <nav class="topnav">
+      <span class="brand">Escher&middot;World</span>
+      <a href="#who">Who?</a>
+      <a href="#tess">Tessellations</a>
+      <a href="#mirror">Mirror Pad</a>
+      <a href="#stairs">Stairs</a>
+      <a href="#morph">Morph</a>
+      <a href="#facts">Facts</a>
+      <a href="#feedback">Feedback</a>
+    </nav>
+
+    <div class="hero-inner">
+      <svg class="hero-bg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <pattern id="lizardTile" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+            <rect width="80" height="80" fill="#0e1430" />
+            <path d="M40 10 q12 0 12 14 q0 10 -8 14 q12 6 12 18 q0 14 -16 14 q-16 0 -16 -14 q0 -12 12 -18 q-8 -4 -8 -14 q0 -14 12 -14 z" fill="#ffcb47" opacity="0.85"/>
+            <circle cx="36" cy="24" r="2" fill="#0e1430" />
+          </pattern>
+        </defs>
+        <rect width="800" height="400" fill="url(#lizardTile)" />
+      </svg>
+
+      <h1>Hi <span class="khoren">Khoren!</span></h1>
+      <p class="tagline">Step inside the <em>impossible</em> world of <strong>M.C. Escher</strong>.</p>
+      <p class="lead">Lizards that tile forever. Stairs that go up <em>and</em> down at the same time. Birds that turn into fish. Pick a door below and play!</p>
+      <div class="cta-row">
+        <a class="cta primary" href="#tess">Start Exploring &rarr;</a>
+        <a class="cta ghost" href="#feedback">Tell us what you think</a>
+      </div>
+    </div>
+
+    <svg class="scroll-cue" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v14M5 13l7 7 7-7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </header>
+
+  <main>
+
+    <!-- ====================== WHO ====================== -->
+    <section id="who" class="card">
+      <div class="card-head">
+        <h2>Who was M.C. Escher?</h2>
+        <span class="tag">A peek at the artist</span>
+      </div>
+      <div class="who-grid">
+        <div>
+          <p><strong>Maurits Cornelis Escher</strong> (1898&ndash;1972) was a Dutch artist who loved math, mirrors, and patterns. He drew worlds that look real but couldn&rsquo;t actually exist &mdash; like staircases that climb forever or lizards crawling out of a flat drawing.</p>
+          <p>He didn&rsquo;t use computers. He carved his ideas into wood and stone, and printed them with ink. Some of his pictures took him <strong>months</strong> to finish!</p>
+          <ul class="quick-facts">
+            <li><span>1898</span> Born in Leeuwarden, Netherlands</li>
+            <li><span>1922</span> Visited the Alhambra in Spain &mdash; the patterns there changed his life</li>
+            <li><span>1937</span> Made his first true tessellation</li>
+            <li><span>1953</span> Drew &ldquo;Relativity&rdquo; with stairs going every which way</li>
+            <li><span>1972</span> Made art until the very end</li>
+          </ul>
+        </div>
+        <div class="who-portrait" aria-hidden="true">
+          <svg viewBox="0 0 200 240">
+            <defs>
+              <radialGradient id="bgr" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#2a2f5a"/>
+                <stop offset="100%" stop-color="#0b0f24"/>
+              </radialGradient>
+            </defs>
+            <rect width="200" height="240" fill="url(#bgr)"/>
+            <!-- Sphere with reflection -->
+            <circle cx="100" cy="120" r="78" fill="#1a1f3d" stroke="#ffcb47" stroke-width="2"/>
+            <ellipse cx="78" cy="92" rx="22" ry="14" fill="#fff" opacity="0.25"/>
+            <!-- Reflected silhouette -->
+            <circle cx="100" cy="120" r="60" fill="none" stroke="#ffcb47" stroke-width="1" stroke-dasharray="2 3"/>
+            <path d="M70 130 q30 -40 60 0 v30 h-60 z" fill="#0b0f24" stroke="#ffcb47" stroke-width="1.5"/>
+            <circle cx="100" cy="118" r="14" fill="#0b0f24" stroke="#ffcb47" stroke-width="1.5"/>
+            <text x="100" y="220" text-anchor="middle" fill="#ffcb47" font-size="11" font-family="serif" letter-spacing="2">M.C. ESCHER</text>
+          </svg>
+          <p class="caption">Inspired by &ldquo;Hand with Reflecting Sphere&rdquo;</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== TESSELLATIONS ====================== -->
+    <section id="tess" class="card">
+      <div class="card-head">
+        <h2>Tessellation Lab</h2>
+        <span class="tag">Tap shapes to color them</span>
+      </div>
+      <p class="lede">A <strong>tessellation</strong> is a pattern of shapes that fit together with no gaps and no overlaps. Escher made tessellations of birds, fish, lizards, even angels and devils. Tap the tiles to color the pattern!</p>
+
+      <div class="tess-controls">
+        <label>Pattern:
+          <select id="tessPattern">
+            <option value="lizard">Lizards</option>
+            <option value="bird">Birds &amp; Fish</option>
+            <option value="hex">Hexagons</option>
+            <option value="tri">Triangles</option>
+          </select>
+        </label>
+        <label>Brush color:
+          <input type="color" id="tessColor" value="#ff5577" />
+        </label>
+        <div class="palette" id="palette" aria-label="Quick colors"></div>
+        <button id="tessRandom" class="btn">Surprise me</button>
+        <button id="tessClear" class="btn ghost">Clear</button>
+      </div>
+
+      <div class="tess-stage">
+        <svg id="tessSvg" viewBox="0 0 600 400" role="img" aria-label="Tessellation canvas"></svg>
+      </div>
+      <p class="hint">Tip: hold and drag your finger to paint many tiles at once.</p>
+    </section>
+
+    <!-- ====================== MIRROR PAD ====================== -->
+    <section id="mirror" class="card">
+      <div class="card-head">
+        <h2>Mirror Drawing Pad</h2>
+        <span class="tag">Draw symmetry like Escher did</span>
+      </div>
+      <p class="lede">Escher loved mirrors and symmetry. Whatever you draw here, the pad will mirror many times around a center point &mdash; like a kaleidoscope. Try squiggles, dots, swirls!</p>
+
+      <div class="mirror-controls">
+        <label>Slices:
+          <input type="range" id="mirrorSlices" min="2" max="16" step="1" value="8" />
+          <span id="mirrorSlicesVal">8</span>
+        </label>
+        <label>Brush:
+          <input type="range" id="mirrorBrush" min="1" max="30" step="1" value="6" />
+        </label>
+        <label>Color:
+          <input type="color" id="mirrorColor" value="#ffcb47" />
+        </label>
+        <label class="check"><input type="checkbox" id="mirrorReflect" checked /> Also reflect</label>
+        <label class="check"><input type="checkbox" id="mirrorRainbow" /> Rainbow brush</label>
+        <button id="mirrorClear" class="btn ghost">Clear</button>
+        <button id="mirrorSave" class="btn">Save image</button>
+      </div>
+
+      <div class="mirror-stage">
+        <canvas id="mirrorCanvas" width="720" height="720" aria-label="Mirror drawing canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- ====================== IMPOSSIBLE STAIRS ====================== -->
+    <section id="stairs" class="card">
+      <div class="card-head">
+        <h2>The Impossible Staircase</h2>
+        <span class="tag">Up is down, down is up</span>
+      </div>
+      <p class="lede">Escher&rsquo;s &ldquo;Ascending and Descending&rdquo; shows people walking up stairs that loop back to where they started. It looks normal, but if you trace it&hellip; you&rsquo;re tricked! Move the slider to send a little walker around forever.</p>
+
+      <div class="stairs-stage">
+        <svg id="stairsSvg" viewBox="0 0 600 400" role="img" aria-label="Impossible staircase"></svg>
+        <input type="range" id="stairsSlider" min="0" max="1000" value="0" aria-label="Walker position" />
+        <div class="stairs-row">
+          <button id="stairsPlay" class="btn">&#9658; Auto walk</button>
+          <span class="hint">Watch how the walker keeps climbing&hellip; but never gets higher.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== METAMORPHOSIS ====================== -->
+    <section id="morph" class="card">
+      <div class="card-head">
+        <h2>Metamorphosis</h2>
+        <span class="tag">Squares becoming birds</span>
+      </div>
+      <p class="lede">In Escher&rsquo;s &ldquo;Metamorphosis&rdquo; pieces, simple squares slowly turn into lizards, fish, or birds. Slide to morph!</p>
+
+      <div class="morph-stage">
+        <svg id="morphSvg" viewBox="0 0 800 200" aria-label="Metamorphosis"></svg>
+      </div>
+      <input type="range" id="morphSlider" min="0" max="100" value="50" aria-label="Morph amount" />
+      <div class="morph-row"><span>Square</span><span>Diamond</span><span>Bird</span></div>
+    </section>
+
+    <!-- ====================== FACTS ====================== -->
+    <section id="facts" class="card">
+      <div class="card-head">
+        <h2>Wow Facts</h2>
+        <span class="tag">Tap a card</span>
+      </div>
+      <div class="facts" id="facts">
+        <button class="fact" data-front="He inspired video games" data-back="The puzzle game &lsquo;Monument Valley&rsquo; was directly inspired by Escher&rsquo;s impossible buildings."></button>
+        <button class="fact" data-front="He loved bugs &amp; lizards" data-back="Escher kept sketchbooks full of beetles and lizards he saw on walks &mdash; that&rsquo;s where his tessellation animals came from."></button>
+        <button class="fact" data-front="He carved wood backwards" data-back="To print his images, he carved them mirrored into woodblocks. Try drawing your name backward!"></button>
+        <button class="fact" data-front="A palace changed him" data-back="The Alhambra palace in Spain has tile patterns from 700+ years ago. Visiting it set Escher on his path."></button>
+        <button class="fact" data-front="Math without numbers" data-back="Escher said he didn&rsquo;t know much math &mdash; but mathematicians study his work to teach geometry!"></button>
+        <button class="fact" data-front="Hands drawing hands" data-back="In &lsquo;Drawing Hands&rsquo; two hands draw each other. Which one is real? Both! Neither! It&rsquo;s a loop."></button>
+      </div>
+    </section>
+
+    <!-- ====================== QUIZ ====================== -->
+    <section id="quiz" class="card">
+      <div class="card-head">
+        <h2>Quick Quiz</h2>
+        <span class="tag">Are you an Escher expert?</span>
+      </div>
+      <div class="quiz" id="quizBody"></div>
+    </section>
+
+    <!-- ====================== FEEDBACK ====================== -->
+    <section id="feedback" class="card feedback">
+      <div class="card-head">
+        <h2>Tell us what you think</h2>
+        <span class="tag">For Khoren &amp; the grown-ups</span>
+      </div>
+      <p>What did you love? What was confusing? What should we add next? Type your thoughts below &mdash; the page will save them to your device, and you can copy them to share with whoever made this for you.</p>
+      <textarea id="fbText" rows="5" placeholder="I liked the&hellip; / It would be cool if&hellip;"></textarea>
+      <div class="fb-row">
+        <button id="fbCopy" class="btn">Copy my feedback</button>
+        <button id="fbClear" class="btn ghost">Clear</button>
+        <span id="fbStatus" class="hint" aria-live="polite"></span>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Made with care for <strong>Khoren</strong>. The art here is inspired by M.C. Escher&rsquo;s ideas; original Escher works are &copy; The M.C. Escher Company &mdash; see <a href="https://mcescher.com" target="_blank" rel="noopener">mcescher.com</a> for the real thing.</p>
+  </footer>
+
+  <script src="app.js" defer></script>
+  <script data-goatcounter="https://usjoh.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
