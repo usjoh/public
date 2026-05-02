@@ -7,6 +7,73 @@
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
+  // ---------- GoatCounter tracking ----------
+  // Path namespace: /escher/<slug>. Single dashboard at usjoh.goatcounter.com,
+  // segmented by URL path. See HLD-013 + HLD-017 in personal/home-lab.
+  function track(slug) {
+    if (window.goatcounter && typeof window.goatcounter.count === 'function') {
+      window.goatcounter.count({ path: '/escher/' + slug, event: true });
+    }
+  }
+  const sectionSeen = new Set();
+  function trackSection(id) {
+    if (id && !sectionSeen.has(id)) {
+      sectionSeen.add(id);
+      track('section/' + id);
+    }
+  }
+  const sectionInteracted = new Set();
+  function ancestorSectionId(node) {
+    while (node && node !== document.body) {
+      if (node.tagName === 'SECTION' && node.id) return node.id;
+      node = node.parentNode;
+    }
+    return null;
+  }
+  function trackInteraction(target) {
+    const sid = ancestorSectionId(target);
+    if (sid && !sectionInteracted.has(sid)) {
+      sectionInteracted.add(sid);
+      track('interact/' + sid + '/first');
+    }
+  }
+  // Manual pageview after settle (we set no_onload=true in HTML)
+  setTimeout(() => track('pageview'), 400);
+  // Engagement heartbeats — calibrated for kid attention span
+  [15000, 60000, 180000].forEach(ms => {
+    setTimeout(() => track('heartbeat/' + (ms / 1000) + 's'), ms);
+  });
+  // Hashchange — explicit section navigation via top nav
+  window.addEventListener('hashchange', () => {
+    const id = (location.hash || '').replace(/^#/, '');
+    trackSection(id);
+  });
+  if (location.hash) {
+    setTimeout(() => trackSection(location.hash.replace(/^#/, '')), 500);
+  }
+  // IntersectionObserver — section visibility (first time only, dedup with hash)
+  if ('IntersectionObserver' in window) {
+    const sectionObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.target.id) {
+          trackSection(entry.target.id);
+        }
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('section[id]').forEach(s => sectionObserver.observe(s));
+  }
+  // Delegated click — data-track-event + interaction-per-section
+  document.addEventListener('click', (e) => {
+    const el = e.target && e.target.closest && e.target.closest('[data-track-event]');
+    if (el) {
+      const evt = el.getAttribute('data-track-event');
+      if (evt) track(evt);
+    }
+    if (e.target) trackInteraction(e.target);
+  }, true);
+  // Delegated change — counts as interaction (dropdowns, toggles, color pickers)
+  document.addEventListener('change', (e) => { if (e.target) trackInteraction(e.target); }, true);
+
   // ---------- Helpers ----------
   function el(tag, attrs, children) {
     const node = document.createElementNS(SVG_NS, tag);
@@ -190,7 +257,10 @@
     window.addEventListener('pointercancel', () => { isPainting = false; });
   }
 
-  tessPattern.addEventListener('change', () => buildTessellation(tessPattern.value));
+  tessPattern.addEventListener('change', () => {
+    track('tess/pattern-change');
+    buildTessellation(tessPattern.value);
+  });
   tessRandom.addEventListener('click', () => {
     document.querySelectorAll('#tessSvg .tile').forEach((t) => {
       t.setAttribute('fill', PALETTE[Math.floor(Math.random() * PALETTE.length)]);
@@ -509,8 +579,11 @@
     }
   }
   morphPath(+morphSlider.value / 100);
+  let morphTrackTimer = null;
   morphSlider.addEventListener('input', () => {
     morphPath(+morphSlider.value / 100);
+    if (morphTrackTimer) clearTimeout(morphTrackTimer);
+    morphTrackTimer = setTimeout(() => track('morph/slide'), 400);
   });
 
   // =======================================================================
@@ -580,9 +653,11 @@
           if (oi === Q.correct) {
             b.classList.add('correct');
             score++;
+            track('quiz/q' + (qi + 1) + '-correct');
           } else {
             b.classList.add('wrong');
             opts.children[Q.correct].classList.add('correct');
+            track('quiz/q' + (qi + 1) + '-wrong');
           }
           const fb = document.createElement('div');
           fb.className = 'quiz-feedback';
@@ -594,6 +669,7 @@
             tally.className = 'quiz-score';
             tally.textContent = `You got ${score} out of ${quizQuestions.length}!`;
             quizContainer.appendChild(tally);
+            track('quiz/complete');
           }
         });
         opts.appendChild(b);
@@ -613,8 +689,13 @@
   const fbStatus = document.getElementById('fbStatus');
   const KEY = 'escher-feedback-v1';
   try { fb.value = localStorage.getItem(KEY) || ''; } catch (e) { /* ignore */ }
+  let fbStarted = false;
   fb.addEventListener('input', () => {
     try { localStorage.setItem(KEY, fb.value); } catch (e) { /* ignore */ }
+    if (!fbStarted && fb.value.length > 0) {
+      fbStarted = true;
+      track('feedback/started');
+    }
   });
   fbCopy.addEventListener('click', async () => {
     if (!fb.value.trim()) {

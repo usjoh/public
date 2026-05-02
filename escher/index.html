@@ -7,6 +7,11 @@
   <meta name="description" content="An interactive, kid-friendly tour through the impossible art of M.C. Escher: tessellations, mirrors, infinite stairs, and more." />
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23111'/><path d='M16 48 L32 16 L48 48 Z' fill='none' stroke='%23ffd84d' stroke-width='3'/><path d='M24 48 L32 32 L40 48' fill='none' stroke='%23ff5577' stroke-width='3'/></svg>" />
+  <script>
+    window.goatcounter = window.goatcounter || {};
+    window.goatcounter.no_onload = true;
+  </script>
+  <script data-goatcounter="https://usjoh.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
   <header class="hero">
@@ -109,8 +114,8 @@
           <input type="color" id="tessColor" value="#ff5577" />
         </label>
         <div class="palette" id="palette" aria-label="Quick colors"></div>
-        <button id="tessRandom" class="btn">Surprise me</button>
-        <button id="tessClear" class="btn ghost">Clear</button>
+        <button id="tessRandom" class="btn" data-track-event="tess/surprise">Surprise me</button>
+        <button id="tessClear" class="btn ghost" data-track-event="tess/clear">Clear</button>
       </div>
 
       <div class="tess-stage">
@@ -140,8 +145,8 @@
         </label>
         <label class="check"><input type="checkbox" id="mirrorReflect" checked /> Also reflect</label>
         <label class="check"><input type="checkbox" id="mirrorRainbow" /> Rainbow brush</label>
-        <button id="mirrorClear" class="btn ghost">Clear</button>
-        <button id="mirrorSave" class="btn">Save image</button>
+        <button id="mirrorClear" class="btn ghost" data-track-event="mirror/clear">Clear</button>
+        <button id="mirrorSave" class="btn" data-track-event="mirror/save">Save image</button>
       </div>
 
       <div class="mirror-stage">
@@ -161,7 +166,7 @@
         <svg id="stairsSvg" viewBox="0 0 600 400" role="img" aria-label="Impossible staircase"></svg>
         <input type="range" id="stairsSlider" min="0" max="1000" value="0" aria-label="Walker position" />
         <div class="stairs-row">
-          <button id="stairsPlay" class="btn">&#9658; Auto walk</button>
+          <button id="stairsPlay" class="btn" data-track-event="stairs/play">&#9658; Auto walk</button>
           <span class="hint">Watch how the walker keeps climbing&hellip; but never gets higher.</span>
         </div>
       </div>
@@ -189,12 +194,12 @@
         <span class="tag">Tap a card</span>
       </div>
       <div class="facts" id="facts">
-        <button class="fact" data-front="He inspired video games" data-back="The puzzle game &lsquo;Monument Valley&rsquo; was directly inspired by Escher&rsquo;s impossible buildings."></button>
-        <button class="fact" data-front="He loved bugs &amp; lizards" data-back="Escher kept sketchbooks full of beetles and lizards he saw on walks &mdash; that&rsquo;s where his tessellation animals came from."></button>
-        <button class="fact" data-front="He carved wood backwards" data-back="To print his images, he carved them mirrored into woodblocks. Try drawing your name backward!"></button>
-        <button class="fact" data-front="A palace changed him" data-back="The Alhambra palace in Spain has tile patterns from 700+ years ago. Visiting it set Escher on his path."></button>
-        <button class="fact" data-front="Math without numbers" data-back="Escher said he didn&rsquo;t know much math &mdash; but mathematicians study his work to teach geometry!"></button>
-        <button class="fact" data-front="Hands drawing hands" data-back="In &lsquo;Drawing Hands&rsquo; two hands draw each other. Which one is real? Both! Neither! It&rsquo;s a loop."></button>
+        <button class="fact" data-track-event="fact/flip" data-front="He inspired video games" data-back="The puzzle game &lsquo;Monument Valley&rsquo; was directly inspired by Escher&rsquo;s impossible buildings."></button>
+        <button class="fact" data-track-event="fact/flip" data-front="He loved bugs &amp; lizards" data-back="Escher kept sketchbooks full of beetles and lizards he saw on walks &mdash; that&rsquo;s where his tessellation animals came from."></button>
+        <button class="fact" data-track-event="fact/flip" data-front="He carved wood backwards" data-back="To print his images, he carved them mirrored into woodblocks. Try drawing your name backward!"></button>
+        <button class="fact" data-track-event="fact/flip" data-front="A palace changed him" data-back="The Alhambra palace in Spain has tile patterns from 700+ years ago. Visiting it set Escher on his path."></button>
+        <button class="fact" data-track-event="fact/flip" data-front="Math without numbers" data-back="Escher said he didn&rsquo;t know much math &mdash; but mathematicians study his work to teach geometry!"></button>
+        <button class="fact" data-track-event="fact/flip" data-front="Hands drawing hands" data-back="In &lsquo;Drawing Hands&rsquo; two hands draw each other. Which one is real? Both! Neither! It&rsquo;s a loop."></button>
       </div>
     </section>
 
@@ -216,7 +221,7 @@
       <p>What did you love? What was confusing? What should we add next? Type your thoughts below &mdash; the page will save them to your device, and you can copy them to share with whoever made this for you.</p>
       <textarea id="fbText" rows="5" placeholder="I liked the&hellip; / It would be cool if&hellip;"></textarea>
       <div class="fb-row">
-        <button id="fbCopy" class="btn">Copy my feedback</button>
+        <button id="fbCopy" class="btn" data-track-event="feedback/copied">Copy my feedback</button>
         <button id="fbClear" class="btn ghost">Clear</button>
         <span id="fbStatus" class="hint" aria-live="polite"></span>
       </div>
@@ -229,6 +234,5 @@
   </footer>
 
   <script src="app.js" defer></script>
-  <script data-goatcounter="https://usjoh.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
