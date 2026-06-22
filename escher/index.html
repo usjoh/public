@@ -29,10 +29,20 @@
     <div class="hero-inner">
       <svg class="hero-bg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <defs>
-          <pattern id="lizardTile" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-            <rect width="80" height="80" fill="#0e1430" />
-            <path d="M40 10 q12 0 12 14 q0 10 -8 14 q12 6 12 18 q0 14 -16 14 q-16 0 -16 -14 q0 -12 12 -18 q-8 -4 -8 -14 q0 -14 12 -14 z" fill="#ffcb47" opacity="0.85"/>
-            <circle cx="36" cy="24" r="2" fill="#0e1430" />
+          <!-- True translation tile (Method A): opposite edges are exact -->
+          <!-- translates, so it interlocks with zero gaps. Top edge bumps =  -->
+          <!-- bottom edge bumps shifted down 80; left edge = right edge -80.  -->
+          <!-- One cell holds two copies (parity colors) for the Escher look.  -->
+          <pattern id="lizardTile" x="0" y="0" width="160" height="160" patternUnits="userSpaceOnUse">
+            <rect width="160" height="160" fill="#0e1430" />
+            <!-- top-left dark bird -->
+            <path d="M0 0 l14 -12 l12 14 l12 -10 l14 10 l28 -2 l-12 16 l14 12 l-10 18 l8 34 l-28 2 l-14 -10 l-12 10 l-12 -14 l-14 12 l-8 -34 l10 -18 l-14 -12 l12 -16 Z" transform="translate(0 0)" fill="#ffcb47" opacity="0.85"/>
+            <!-- top-right light bird -->
+            <path d="M0 0 l14 -12 l12 14 l12 -10 l14 10 l28 -2 l-12 16 l14 12 l-10 18 l8 34 l-28 2 l-14 -10 l-12 10 l-12 -14 l-14 12 l-8 -34 l10 -18 l-14 -12 l12 -16 Z" transform="translate(80 0)" fill="#6cb4ff" opacity="0.75"/>
+            <!-- bottom-left light bird -->
+            <path d="M0 0 l14 -12 l12 14 l12 -10 l14 10 l28 -2 l-12 16 l14 12 l-10 18 l8 34 l-28 2 l-14 -10 l-12 10 l-12 -14 l-14 12 l-8 -34 l10 -18 l-14 -12 l12 -16 Z" transform="translate(0 80)" fill="#6cb4ff" opacity="0.75"/>
+            <!-- bottom-right dark bird -->
+            <path d="M0 0 l14 -12 l12 14 l12 -10 l14 10 l28 -2 l-12 16 l14 12 l-10 18 l8 34 l-28 2 l-14 -10 l-12 10 l-12 -14 l-14 12 l-8 -34 l10 -18 l-14 -12 l12 -16 Z" transform="translate(80 80)" fill="#ffcb47" opacity="0.85"/>
           </pattern>
         </defs>
         <rect width="800" height="400" fill="url(#lizardTile)" />
@@ -105,7 +115,8 @@
         <label>Pattern:
           <select id="tessPattern">
             <option value="lizard">Lizards</option>
-            <option value="bird">Birds &amp; Fish</option>
+            <option value="bird">Birds</option>
+            <option value="fish">Fish</option>
             <option value="hex">Hexagons</option>
             <option value="tri">Triangles</option>
           </select>
@@ -116,7 +127,9 @@
         <div class="palette" id="palette" aria-label="Quick colors"></div>
         <button id="tessRandom" class="btn" data-track-event="tess/surprise">Surprise me</button>
         <button id="tessClear" class="btn ghost" data-track-event="tess/clear">Clear</button>
+        <button id="tessHow" class="btn">&#10024; How it&rsquo;s made</button>
       </div>
+      <p class="hint how-hint">Escher started with a simple shape, then bent its edges &mdash; what pokes out one side pokes in the other, so they always fit! Tap <strong>&#10024; How it&rsquo;s made</strong> to watch.</p>
 
       <div class="tess-stage">
         <svg id="tessSvg" viewBox="0 0 600 400" role="img" aria-label="Tessellation canvas"></svg>

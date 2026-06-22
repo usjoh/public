@@ -115,8 +115,166 @@
     elem.setAttribute('fill', tessColorInput.value);
   }
 
-  function buildTessellation(kind) {
-    tessSvg.innerHTML = '';
+  // -----------------------------------------------------------------------
+  // TRUE TILINGS
+  // -----------------------------------------------------------------------
+  // The creature tilings (bird, fish, lizard) use Method A: a SQUARE cell of
+  // side S whose OPPOSITE edges are exact translates of each other. A bump
+  // pushed OUT of the top edge is exactly the notch the tile above needs;
+  // a bump pushed OUT of the left edge is exactly the notch on the right.
+  // Because opposite edges are identical translates, copies placed at every
+  // (m*S, n*S) interlock with zero gaps and zero overlaps — guaranteed.
+  //
+  // Edges are stored as RELATIVE segment lists (SVG path commands without the
+  // leading move) walking one edge. The opposite edge is the SAME list,
+  // re-emitted; the closed path is built by walking
+  //   top  (TL->TR)  then  right (TR->BR)  then  reversed bottom (BR->BL)
+  //   then reversed left (BL->TL).
+  // "Reversed" just plays the relative segments backwards with negated deltas,
+  // so bottom is literally top + (0,S) and right is literally left + (S,0).
+  // We only ever author TWO edge profiles (top and left); the other two are
+  // derived, which is what makes the translate-equality exact by construction.
+
+  const TILE = 64; // cell side S for creature tilings (divides evenly into overscan)
+
+  // Reverse a list of relative [dx,dy] segments (so a walked edge can be
+  // re-walked from the far end). Reversing preserves the shape exactly.
+  function reverseSegs(segs) {
+    return segs.slice().reverse().map(s => [-s[0], -s[1]]);
+  }
+
+  // Emit relative cubic-ish polyline as an SVG 'l' (line) command string.
+  // We use straight segments for the deformed edges — they read as creature
+  // outlines and keep the translate-equality trivially exact.
+  function segsToPath(segs) {
+    return segs.map(s => `l ${s[0]} ${s[1]}`).join(' ');
+  }
+
+  // Build a closed tile path string for a creature whose top & left edge
+  // profiles are given as relative-segment lists that each sum to (S,0) and
+  // (0,S) respectively. Drawn starting at the cell's top-left corner (tlx,tly).
+  function creatureTilePath(tlx, tly, topSegs, leftSegs) {
+    const top = topSegs;                 // TL -> TR, sums to (S,0)
+    const right = leftSegs;              // TR -> BR  == left edge translated +S in x
+    const bottom = reverseSegs(topSegs); // BR -> BL  == top edge translated +S in y, reversed
+    const left = reverseSegs(leftSegs);  // BL -> TL  == left edge, reversed
+    return `M ${tlx} ${tly} ${segsToPath(top)} ${segsToPath(right)} ${segsToPath(bottom)} ${segsToPath(left)} Z`;
+  }
+
+  // ---- Edge profiles (each authored ONCE; opposite edge is the translate) ----
+  // S = TILE = 64. Segment deltas must sum to (S,0) for top, (0,S) for left.
+
+  // BIRD: top edge = head + beak bump up, then wing dip; left edge = body curve.
+  function birdEdges() {
+    const S = TILE;
+    // top: TL(0,0) -> TR(S,0). A beak/head pokes UP (negative y), tail dips down.
+    const top = [
+      [12, -10],  // up to head
+      [10, 12],   // down behind head (notch)
+      [10, -8],   // wing bump up
+      [12, 8],    // back down
+      [S - 44, -2] // glide to TR (remaining x, sums to S)
+    ];
+    // left: TL(0,0) -> BL(0,S). Belly pokes LEFT (negative x), then tucks in.
+    const left = [
+      [-10, 14],  // chest out (left)
+      [12, 10],   // tuck in
+      [-8, 14],   // leg out
+      [6, S - 38] // to BL (remaining y, sums to S)
+    ];
+    return { top, left };
+  }
+
+  // FISH: top edge = back with a fin bump; left edge = head + tail notch.
+  function fishEdges() {
+    const S = TILE;
+    const top = [
+      [16, -6],   // back rises
+      [10, -10],  // dorsal fin pokes up
+      [12, 14],   // fin trailing edge dips (notch)
+      [S - 38, 2] // glide to TR
+    ];
+    const left = [
+      [-12, 16],  // nose/head pokes left
+      [14, 12],   // gill tuck in
+      [-10, 18],  // belly fin out
+      [8, S - 46] // to BL
+    ];
+    return { top, left };
+  }
+
+  // LIZARD: translation tiling (Method A fallback per spec — a truly-tiling
+  // translated lizard beats a gappy rotated one). Top edge = head + snout;
+  // left edge = front leg out / haunch.
+  function lizardEdges() {
+    const S = TILE;
+    const top = [
+      [10, -12],  // snout pokes up
+      [8, 14],    // notch behind snout
+      [12, -10],  // shoulder hump up
+      [10, 10],   // down
+      [S - 40, -2]// glide to TR
+    ];
+    const left = [
+      [-12, 12],  // front leg pokes left
+      [10, 10],   // tuck
+      [-10, 16],  // back leg pokes left
+      [12, 8],    // tuck
+      [0, S - 46] // straight to BL
+    ];
+    return { top, left };
+  }
+
+  const CREATURE_EDGES = { bird: birdEdges, fish: fishEdges, lizard: lizardEdges };
+
+  // Two-color Escher scheme: alternate by (row+col) parity.
+  const TESS_DARK = '#1a1f48';
+  const TESS_LIGHT = '#2c3470';
+  function baseFill(row, col) {
+    return ((row + col) & 1) ? TESS_LIGHT : TESS_DARK;
+  }
+
+  // Add a small eye dot + (for some) a defining mark so the creature reads.
+  // The eye is decorative, not a tile, so painting still targets the tile path.
+  function addCreatureFeatures(kind, tlx, tly) {
+    const S = TILE;
+    // Eye position chosen near the "head" region of each profile.
+    let ex, ey;
+    if (kind === 'bird') { ex = tlx + S * 0.30; ey = tly + S * 0.20; }
+    else if (kind === 'fish') { ex = tlx + S * 0.18; ey = tly + S * 0.30; }
+    else { ex = tlx + S * 0.26; ey = tly + S * 0.18; } // lizard
+    tessSvg.appendChild(el('circle', {
+      cx: ex.toFixed(1), cy: ey.toFixed(1), r: 2.4,
+      fill: '#0b0f24', 'pointer-events': 'none', class: 'tess-eye'
+    }));
+  }
+
+  function buildCreatureTiling(kind) {
+    const W = 600, H = 400, S = TILE;
+    const edges = CREATURE_EDGES[kind]();
+    // Overscan: start one cell before 0 and run one past the far edge so the
+    // 600x400 viewBox is filled edge-to-edge with no blank margins.
+    let row = 0;
+    for (let y = -S; y < H + S; y += S, row++) {
+      let col = 0;
+      for (let x = -S; x < W + S; x += S, col++) {
+        const d = creatureTilePath(x, y, edges.top, edges.left);
+        const bf = baseFill(row, col);
+        tessSvg.appendChild(el('path', {
+          d,
+          class: 'tile',
+          fill: bf,
+          'data-base': bf,
+          stroke: '#0b0f24',
+          'stroke-width': '1.5',
+          'stroke-linejoin': 'round'
+        }));
+        addCreatureFeatures(kind, x, y);
+      }
+    }
+  }
+
+  function buildGeometricTiling(kind) {
     const W = 600, H = 400;
     if (kind === 'hex') {
       const r = 30;
@@ -124,24 +282,25 @@
       const h = 1.5 * r;
       for (let row = 0, y = 0; y < H + h; y += h, row++) {
         const xOffset = (row % 2) * (w / 2);
-        for (let x = -w; x < W + w; x += w) {
+        for (let col = 0, x = -w; x < W + w; x += w, col++) {
           const cx = x + xOffset, cy = y;
           const pts = [];
           for (let i = 0; i < 6; i++) {
             const a = Math.PI / 3 * i + Math.PI / 6;
             pts.push((cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1));
           }
-          const poly = el('polygon', {
+          const bf = baseFill(row, col);
+          tessSvg.appendChild(el('polygon', {
             points: pts.join(' '),
             class: 'tile',
-            fill: '#1a1f48',
+            fill: bf,
+            'data-base': bf,
             stroke: '#0b0f24',
             'stroke-width': '1.5'
-          });
-          tessSvg.appendChild(poly);
+          }));
         }
       }
-    } else if (kind === 'tri') {
+    } else { // 'tri'
       const s = 50;
       const h = (Math.sqrt(3) / 2) * s;
       for (let row = 0, y = 0; y < H + h; y += h, row++) {
@@ -151,89 +310,29 @@
           const points = up
             ? [x1, y1 + h, x1 + s / 2, y1, x1 + s, y1 + h]
             : [x1, y1, x1 + s / 2, y1 + h, x1 + s, y1];
-          const poly = el('polygon', {
+          // Alternate the two triangle orientations as the 2-color scheme so
+          // the interlock reads even before tapping.
+          const bf = up ? TESS_DARK : TESS_LIGHT;
+          tessSvg.appendChild(el('polygon', {
             points: points.join(' '),
             class: 'tile',
-            fill: '#1a1f48',
-            stroke: '#0b0f24',
-            'stroke-width': '1.5'
-          });
-          tessSvg.appendChild(poly);
-        }
-      }
-    } else if (kind === 'lizard') {
-      // P3 hex-based lizard tessellation (stylized)
-      const cell = 70;
-      const lizPath = (cx, cy, rot, color) => {
-        // A stylized lizard built from a closed path
-        const d = `M ${cx} ${cy - 28}
-                   c 8 0 14 6 14 14
-                   c 0 6 -4 10 -8 12
-                   c 8 4 12 10 12 18
-                   c 0 10 -8 16 -18 16
-                   c -10 0 -18 -6 -18 -16
-                   c 0 -8 4 -14 12 -18
-                   c -4 -2 -8 -6 -8 -12
-                   c 0 -8 6 -14 14 -14 z`;
-          // legs
-        const path = el('path', {
-          d, class: 'tile',
-          fill: color, stroke: '#0b0f24', 'stroke-width': '1.5',
-          transform: `rotate(${rot} ${cx} ${cy})`
-        });
-        return path;
-      };
-      const colors = ['#1a1f48', '#1a1f48', '#1a1f48'];
-      let i = 0;
-      for (let row = 0, y = 0; y < H + cell; y += cell, row++) {
-        const offset = (row % 2) * cell / 2;
-        for (let x = -cell / 2; x < W + cell; x += cell, i++) {
-          const rot = (i % 3) * 120;
-          const color = colors[i % 3];
-          tessSvg.appendChild(lizPath(x + offset, y, rot, color));
-        }
-      }
-    } else if (kind === 'bird') {
-      // Day & Night style: alternating birds and fish using simple shapes in a hex grid
-      const r = 36;
-      const w = Math.sqrt(3) * r;
-      const h = 1.5 * r;
-      let i = 0;
-      for (let row = 0, y = 0; y < H + h; y += h, row++) {
-        const xOffset = (row % 2) * (w / 2);
-        for (let x = -w; x < W + w; x += w, i++) {
-          const cx = x + xOffset, cy = y;
-          const isBird = (i % 2 === 0);
-          const d = isBird
-            // bird silhouette
-            ? `M ${cx - 24} ${cy}
-               q 6 -10 18 -10
-               q 12 0 18 6
-               q 4 -8 10 -10
-               q -2 8 -2 12
-               q 0 8 -10 12
-               q -10 4 -16 4
-               q -10 0 -18 -6
-               q -4 -4 0 -8 z`
-            // fish silhouette
-            : `M ${cx - 24} ${cy}
-               q 6 -8 18 -8
-               q 14 0 22 8
-               q 4 -2 8 -6
-               q -2 6 -2 8
-               q 0 8 -10 10
-               q -10 2 -18 2
-               q -12 0 -18 -6
-               q -4 -4 0 -8 z`;
-          tessSvg.appendChild(el('path', {
-            d,
-            class: 'tile',
-            fill: isBird ? '#1a1f48' : '#22264f',
+            fill: bf,
+            'data-base': bf,
             stroke: '#0b0f24',
             'stroke-width': '1.5'
           }));
         }
       }
+    }
+  }
+
+  function buildTessellation(kind) {
+    cancelReveal();
+    tessSvg.innerHTML = '';
+    if (kind === 'bird' || kind === 'fish' || kind === 'lizard') {
+      buildCreatureTiling(kind);
+    } else {
+      buildGeometricTiling(kind);
     }
   }
 
@@ -244,12 +343,14 @@
       return target;
     }
     tessSvg.addEventListener('pointerdown', (e) => {
+      // Tapping anything during the reveal returns to the normal grid.
+      if (revealRunning) { cancelReveal(); buildTessellation(tessPattern.value); return; }
       e.preventDefault();
       isPainting = true;
       colorTile(e.target);
     });
     tessSvg.addEventListener('pointermove', (e) => {
-      if (!isPainting) return;
+      if (!isPainting || revealRunning) return;
       const t = getTileFromEvent(e);
       colorTile(t);
     });
@@ -262,13 +363,151 @@
     buildTessellation(tessPattern.value);
   });
   tessRandom.addEventListener('click', () => {
+    if (revealRunning) { cancelReveal(); buildTessellation(tessPattern.value); }
     document.querySelectorAll('#tessSvg .tile').forEach((t) => {
       t.setAttribute('fill', PALETTE[Math.floor(Math.random() * PALETTE.length)]);
     });
   });
   tessClear.addEventListener('click', () => {
-    document.querySelectorAll('#tessSvg .tile').forEach((t) => t.setAttribute('fill', '#1a1f48'));
+    if (revealRunning) { cancelReveal(); buildTessellation(tessPattern.value); return; }
+    // Reset to the 2-color Escher base, not a single flat color.
+    document.querySelectorAll('#tessSvg .tile').forEach((t) => {
+      t.setAttribute('fill', t.getAttribute('data-base') || TESS_DARK);
+    });
   });
+
+  // -----------------------------------------------------------------------
+  // "HOW IT'S MADE" REVEAL
+  // -----------------------------------------------------------------------
+  // Animates: plain square outline -> push one edge OUT and the opposite edge
+  // IN by the same amount (the key idea) -> finished creature -> multiply it
+  // across the grid so the tiling appears. Skippable: tapping anything (handled
+  // in setupTessInteraction / button handlers) returns to the colorable grid.
+  const tessHow = document.getElementById('tessHow');
+  let revealRunning = false;
+  let revealRAF = null;
+  let revealTimers = [];
+
+  function cancelReveal() {
+    revealRunning = false;
+    if (revealRAF) { cancelAnimationFrame(revealRAF); revealRAF = null; }
+    revealTimers.forEach(t => clearTimeout(t));
+    revealTimers = [];
+  }
+
+  // A standalone demo creature centered in the canvas, used only by the reveal.
+  // We morph a plain square into the LIZARD profile so the "out one side / in
+  // the other" idea is visible at large scale, then tile that finished shape.
+  function revealTilePath(tlx, tly, S, topSegs, leftSegs) {
+    const top = topSegs;
+    const right = leftSegs;
+    const bottom = reverseSegs(topSegs);
+    const left = reverseSegs(leftSegs);
+    return `M ${tlx} ${tly} ${segsToPath(top)} ${segsToPath(right)} ${segsToPath(bottom)} ${segsToPath(left)} Z`;
+  }
+
+  // Build the SAME number of segments as the target, but perfectly straight:
+  // each start segment keeps only its along-edge component (the bumps are
+  // flattened to zero), so the square's straight edge can morph into the
+  // creature's bumpy edge one segment at a time.
+  function expandSquareToMatch(targetSegs, axis) {
+    // axis 'x' for top edge (segments sum to (S,0)); 'y' for left edge (0,S).
+    return targetSegs.map(s => axis === 'x' ? [s[0], 0] : [0, s[1]]);
+  }
+  function lerpSegs(a, b, t) {
+    return a.map((s, i) => [ lerp(s[0], b[i][0], t), lerp(s[1], b[i][1], t) ]);
+  }
+
+  function runReveal() {
+    track('tess/how-its-made');
+    cancelReveal();
+    revealRunning = true;
+    tessSvg.innerHTML = '';
+
+    const reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const S = 150;                 // big demo cell
+    const ox = (600 - S) / 2;      // centered-ish
+    const oy = (400 - S) / 2 - 10;
+    const liz = lizardEdges();     // re-scale profile to the big cell
+    const scale = S / TILE;
+    const targetTop = liz.top.map(s => [s[0] * scale, s[1] * scale]);
+    const targetLeft = liz.left.map(s => [s[0] * scale, s[1] * scale]);
+    const startTop = expandSquareToMatch(targetTop, 'x');
+    const startLeft = expandSquareToMatch(targetLeft, 'y');
+
+    // Persistent demo shape + helper labels.
+    const demo = el('path', {
+      class: 'reveal-shape',
+      fill: TESS_DARK, stroke: '#ffcb47', 'stroke-width': '3',
+      'stroke-linejoin': 'round', 'pointer-events': 'none'
+    });
+    tessSvg.appendChild(demo);
+    const label = el('text', {
+      x: 300, y: 360, 'text-anchor': 'middle',
+      fill: '#ffcb47', 'font-size': '18', 'font-family': 'Georgia, serif',
+      'font-style': 'italic', 'pointer-events': 'none'
+    });
+    tessSvg.appendChild(label);
+
+    function drawDemo(topSegs, leftSegs) {
+      demo.setAttribute('d', revealTilePath(ox, oy, S, topSegs, leftSegs));
+    }
+
+    function finishToGrid() {
+      // Multiply the finished creature across the grid, then hand back to the
+      // normal colorable build so painting works immediately. The reveal always
+      // demos the lizard, so end on the lizard grid and sync the dropdown.
+      revealRunning = false;
+      tessPattern.value = 'lizard';
+      buildTessellation('lizard');
+    }
+
+    // Phase plan
+    function showSquare() {
+      drawDemo(startTop, startLeft);
+      label.textContent = 'Start with a plain square…';
+    }
+    function showCreature() {
+      drawDemo(targetTop, targetLeft);
+      label.textContent = 'What pokes OUT one side pokes IN the other — so they fit!';
+    }
+
+    if (reduceMotion) {
+      // Jump to the end: show finished creature briefly, then tile.
+      showCreature();
+      const t = setTimeout(finishToGrid, 900);
+      revealTimers.push(t);
+      return;
+    }
+
+    // Animated sequence.
+    showSquare();
+    const DEFORM_MS = 1600;
+    const t1 = setTimeout(() => {
+      label.textContent = 'Now bend its edges…';
+      const start = performance.now();
+      function step(now) {
+        if (!revealRunning) return;
+        const t = clamp((now - start) / DEFORM_MS, 0, 1);
+        // easeInOut
+        const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        drawDemo(lerpSegs(startTop, targetTop, e), lerpSegs(startLeft, targetLeft, e));
+        if (t < 1) { revealRAF = requestAnimationFrame(step); }
+        else {
+          showCreature();
+          const t2 = setTimeout(finishToGrid, 1400);
+          revealTimers.push(t2);
+        }
+      }
+      revealRAF = requestAnimationFrame(step);
+    }, 900);
+    revealTimers.push(t1);
+  }
+
+  if (tessHow) tessHow.addEventListener('click', runReveal);
+
   buildTessellation('lizard');
   setupTessInteraction();
 

@@ -286,6 +286,15 @@ input[type="color"] {
   transition: opacity .1s;
 }
 #tessSvg .tile:hover { opacity: 0.85; }
+#tessSvg .tess-eye { pointer-events: none; }
+.how-hint {
+  color: #d4cfc1;
+  background: rgba(255,203,71,0.08);
+  border-left: 3px solid #ffcb47;
+  padding: .5rem .75rem;
+  border-radius: 8px;
+  margin-top: 0;
+}
 
 /* ----- Mirror pad ----- */
 .mirror-controls input[type="range"] { vertical-align: middle; }
