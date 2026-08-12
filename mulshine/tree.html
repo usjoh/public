@@ -21,6 +21,13 @@
          pointer-events:none}
   header h1{font-size:clamp(19px,3vw,28px); font-weight:normal; letter-spacing:.4px}
   header .sub{font-style:italic; color:var(--soft); font-size:clamp(12px,1.7vw,14.5px); margin-top:3px}
+  #sitenav{position:fixed; top:12px; right:16px; z-index:30; display:flex; gap:16px;
+           pointer-events:auto; background:rgba(247,243,234,.82); border:1px solid var(--line);
+           border-radius:20px; padding:7px 16px;
+           -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px)}
+  #sitenav a{color:var(--soft); text-decoration:none; font-family:Verdana,Geneva,sans-serif;
+             font-size:11px; letter-spacing:2px; text-transform:uppercase}
+  #sitenav a:hover{color:var(--ink)}
   #stage{position:absolute; inset:0; cursor:grab; touch-action:none}
   #stage.dragging{cursor:grabbing}
   .card{cursor:pointer}
@@ -74,12 +81,17 @@
   <h1>The Mulshine Family</h1>
   <div class="sub">from the family history compiled by John Mulshine &mdash; Castletownroche, Co.&nbsp;Cork &rarr; New York &rarr; the world</div>
 </header>
+<nav id="sitenav">
+  <a href="index.html">Menu</a>
+  <a href="story.html">Story</a>
+  <a href="John%20Mulshine%20-%20Family%20History%20(Digital%20Edition).pdf">Book</a>
+</nav>
 
 <div id="stage"><svg id="svg" width="100%" height="100%"></svg></div>
 
 <div id="panel"><button class="close" onclick="closePanel()">&times;</button><div class="inner" id="panelInner"></div></div>
 
-<footer><div class="hint">drag to pan &middot; scroll to zoom &middot; click any name for their story &middot; page numbers refer to the digital edition PDF</div></footer>
+<footer><div class="hint">drag to pan &middot; pinch or scroll to zoom &middot; click any name for their story &middot; page numbers refer to the digital edition PDF</div></footer>
 
 <script>
 // ————— page reference helper: IMG number -> PDF page in the digital edition —————
