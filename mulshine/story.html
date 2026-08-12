@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Stone and the Rose — A Mulshine Family Story</title>
+<script data-goatcounter="https://usjoh.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 <style>
   :root{--paper:#f6f1e7; --ink:#28231d; --soft:#756a5a; --accent:#84343c; --gold:#a5842c}
   *{box-sizing:border-box; margin:0; padding:0}
@@ -328,6 +329,12 @@
 <script>
 const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add("inview")})},{threshold:0.25});
 document.querySelectorAll("section").forEach(s=>io.observe(s));
+let storyDone=false;
+const ioEnd=new IntersectionObserver(es=>{es.forEach(e=>{
+  if(e.isIntersecting&&!storyDone){storyDone=true;
+    if(window.goatcounter&&window.goatcounter.count)window.goatcounter.count({path:"mulshine-story-finished",title:"Story read to the end",event:true});
+  }})},{threshold:0.4});
+ioEnd.observe(document.getElementById("coda"));
 </script>
 </body>
 </html>

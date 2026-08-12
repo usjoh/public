@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Mulshine Family Tree</title>
+<script data-goatcounter="https://usjoh.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 <style>
   :root{
     --paper:#f7f3ea; --ink:#2b2620; --soft:#6b6154; --line:#b4a88f;
@@ -386,6 +387,7 @@ stage.addEventListener("dblclick",e=>{if(!e.target.closest(".card"))zoomAbout(e.
 const panel=document.getElementById("panel"), inner=document.getElementById("panelInner");
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
 function openPanel(id){
+  if(window.goatcounter&&window.goatcounter.count)window.goatcounter.count({path:"mulshine-tree-card",title:"Tree card opened",event:true});
   const p=P[id];
   let html="";
   if(p.lineage){

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>The Mulshine Family</title>
+<script data-goatcounter="https://usjoh.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 <style>
   :root{--paper:#f6f1e7; --ink:#28231d; --soft:#756a5a; --accent:#84343c; --gold:#a5842c}
   *{box-sizing:border-box; margin:0; padding:0}
@@ -42,7 +43,7 @@
     <div class="d">Two rivers, one family: the Mulshine and Haigh lines, joining at Vincent and Dorothy. Pinch to zoom, tap any name for their story, and unfold the Charlemagne and Mayflower lineages.</div>
   </a>
 
-  <a class="item" href="John%20Mulshine%20-%20Family%20History%20(Digital%20Edition).pdf">
+  <a class="item" id="pdflink" href="John%20Mulshine%20-%20Family%20History%20(Digital%20Edition).pdf">
     <span class="k">The Book</span>
     <div class="t">The Complete Book &mdash; Digital Edition</div>
     <div class="d">All 201 pages of John's book as a searchable PDF facsimile (23&nbsp;MB). Save it, print it, search it, share it.</div>
@@ -51,5 +52,10 @@
   <footer>Prepared from John Mulshine's family history, August 2026.<br>
     Sl&aacute;inte!</footer>
 </main>
+<script>
+document.getElementById("pdflink").addEventListener("click",function(){
+  if(window.goatcounter&&window.goatcounter.count)window.goatcounter.count({path:"mulshine-pdf-download",title:"PDF download",event:true});
+});
+</script>
 </body>
 </html>
