@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Mulshine Family Tree</title>
+<style>
+  :root{
+    --paper:#f7f3ea; --ink:#2b2620; --soft:#6b6154; --line:#b4a88f;
+    --mul:#1d5c46; --mulbg:#e8f1ec; --haigh:#7a3b2e; --haighbg:#f6e9e2;
+    --madden:#3d5a80; --maddenbg:#e6edf5; --aus:#8a6d1f; --ausbg:#f5efdc;
+    --gold:#a5842c; --accent:#84343c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%}
+  body{background:var(--paper); color:var(--ink);
+       font-family:Georgia,'Times New Roman',serif; overflow:hidden}
+  header{position:fixed; top:0; left:0; right:0; z-index:10;
+         padding:14px 22px 12px; background:linear-gradient(var(--paper) 78%,rgba(247,243,234,0));
+         pointer-events:none}
+  header h1{font-size:clamp(19px,3vw,28px); font-weight:normal; letter-spacing:.4px}
+  header .sub{font-style:italic; color:var(--soft); font-size:clamp(12px,1.7vw,14.5px); margin-top:3px}
+  #stage{position:absolute; inset:0; cursor:grab; touch-action:none}
+  #stage.dragging{cursor:grabbing}
+  .card{cursor:pointer}
+  .card rect{fill:#fff; stroke:var(--line); stroke-width:1.1; rx:7}
+  .card.mul rect{fill:var(--mulbg); stroke:var(--mul)}
+  .card.haigh rect{fill:var(--haighbg); stroke:var(--haigh)}
+  .card.madden rect{fill:var(--maddenbg); stroke:var(--madden)}
+  .card.aus rect{fill:var(--ausbg); stroke:var(--aus)}
+  .card.anchor rect{stroke-width:2.4}
+  .card text{fill:var(--ink)}
+  .card .nm{font-size:15px}
+  .card .nm2{font-size:13.5px}
+  .card .yrs{font-size:11.5px; fill:var(--soft); font-style:italic}
+  .card:hover rect{stroke-width:2.6}
+  .capsule rect{rx:17; fill:#fbf7ec; stroke:var(--gold); stroke-width:1.4; stroke-dasharray:5 3}
+  .capsule text{fill:#7a5f1c; font-size:12.5px; font-style:italic}
+  .capsule:hover rect{stroke-width:2.6}
+  .glabel{font-size:12px; fill:var(--soft); font-style:italic; letter-spacing:1.5px}
+  .link{fill:none; stroke:var(--line); stroke-width:1.5}
+  .link.marriage{stroke:var(--accent); stroke-width:1.2; stroke-dasharray:3 3}
+  .link.thick{stroke-width:2.4}
+  .memorial text{font-size:11px; fill:var(--soft); font-style:italic}
+  .noteline{font-size:11.5px; fill:var(--soft); font-style:italic}
+  #panel{position:fixed; top:0; right:-420px; width:min(400px,92vw); height:100%;
+         background:#fffdf8; border-left:1px solid var(--line); z-index:20;
+         transition:right .25s ease; overflow-y:auto; box-shadow:-6px 0 24px rgba(43,38,32,.12)}
+  #panel.open{right:0}
+  #panel .inner{padding:26px 24px 40px}
+  #panel h2{font-size:21px; font-weight:normal; margin-bottom:2px}
+  #panel .yrs{color:var(--soft); font-style:italic; font-size:14px; margin-bottom:14px}
+  #panel .facts li{margin:0 0 10px 18px; font-size:14px; line-height:1.5}
+  #panel .srcs{margin-top:18px; padding-top:12px; border-top:1px dashed var(--line);
+               font-size:12px; color:var(--soft); font-style:italic; line-height:1.6}
+  #panel .lineage li{margin:0 0 8px 24px; font-size:13px; line-height:1.45}
+  #panel .close{position:absolute; top:12px; right:14px; border:none; background:none;
+                font-size:22px; color:var(--soft); cursor:pointer; font-family:inherit}
+  footer{position:fixed; bottom:0; left:0; right:0; z-index:10; pointer-events:none;
+         padding:10px 22px 12px; text-align:right;
+         background:linear-gradient(rgba(247,243,234,0),var(--paper) 70%)}
+  footer .hint{font-size:12px; color:var(--soft); font-style:italic}
+  @media print{
+    header,footer{position:static; background:none}
+    #stage{position:static; overflow:visible}
+    #panel{display:none}
+    body{overflow:visible}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>The Mulshine Family</h1>
+  <div class="sub">from the family history compiled by John Mulshine &mdash; Castletownroche, Co.&nbsp;Cork &rarr; New York &rarr; the world</div>
+</header>
+
+<div id="stage"><svg id="svg" width="100%" height="100%"></svg></div>
+
+<div id="panel"><button class="close" onclick="closePanel()">&times;</button><div class="inner" id="panelInner"></div></div>
+
+<footer><div class="hint">drag to pan &middot; scroll to zoom &middot; click any name for their story &middot; page numbers refer to the digital edition PDF</div></footer>
+
+<script>
+// ————— page reference helper: IMG number -> PDF page in the digital edition —————
+function pg(n){ if(n>=7241&&n<=7259) return n-7240; if(n>=7303&&n<=7484) return n-7302+19; return null; }
+function srcline(imgs){ return "In the book: " + imgs.map(n=>"p."+pg(n)).join(", ") + "  (digital edition)"; }
+
+// ————— data: hand-curated from the verified page transcriptions —————
+const P = {
+ patrick:{cls:"mul",n1:"Patrick Mulchinach",n2:"& Margaret Flemming",yrs:"m. 20 May 1817 · Castletownroche",facts:[
+  "Married in Castletownroche parish, Co. Cork, on 20 May 1817 — witnesses Richard Flemming and Johanna Mulchinag. The oldest documented generation of the family.",
+  "In Griffith's Valuation (November 1850) Patrick held a house and yard on New Road, Castletownroche; his neighbors included Michael and Patrick Roche — very possibly Mary Roche's family. As John writes: “Did they know each other in Castletownroche....most likely.”",
+  "Six known children baptized at Castletownroche: Denis (1823), Moses (1826), Michael (1831), John (1833), Patrick (1835), and Margaret (1837).",
+  "The surname appears as Mulchinach, Mulchinagh, Mulchinock, and Mulshana in the registers; the ancient Irish form is Ó Maoilsionóg. It settled as “Mulshine” only in New York."],
+  s:[7246,7254,7257,7259]},
+ denis1823:{cls:"mul",n1:"Denis Mulshine",n2:"& Hannah Connors",yrs:"1823–1894 · first to America, 1845",facts:[
+  "“Our first direct blood relative to arrive in America” — Denis emigrated in 1845, four years ahead of his brothers. Finding him took John three decades: “I actually cried a little... I am probably the only person in more than a century to feel this depth of emotion for Denis and Hannah.”",
+  "In 1850 the family lived at 125 Allen Street in the Five Points — the Manhattan of Gangs of New York.",
+  "A stone mason, naturalized 15 Feb 1858. He bought the family plot at Calvary Cemetery on 16 Oct 1853; he, Hannah, and five of their children rest there.",
+  "He took in his 18-year-old kinsman Michael when Michael landed in 1849 — whether Denis was brother, uncle, or cousin to him John could never fully prove; the census taker's hand marks him simply “1st Mulshine in U.S.”"],
+  s:[7246,7323,7324,7451,7453]},
+ moses1826:{cls:"mul",n1:"Moses Mulchinach",yrs:"1826–1860 · sailed on the Arcola, 1849",facts:[
+  "Baptized 1826 at Castletownroche; almost certainly the “Moses Mulshina” who arrived in New York 7 March 1849 aboard the Arcola from Liverpool — a 21-year-old mason, steerage, “staying in America.”",
+  "Died in New York in February 1860. He shares Calvary plot Section 2, Range 3, Plot H, Grave 3 with Michael's second wife Catherine — a quiet clue that the brothers stayed close.",
+  "The name Moses runs through the family for generations — even the florist John met in Mallow in 1991 had a grandfather Moses."],
+  s:[7246,7256,7304,7451]},
+ michael:{cls:"mul anchor",n1:"Michael Mulshine",n2:"& Mary Roche",yrs:"1831–1898 · the crossing, 1849",facts:[
+  "John's great-grandfather. Baptized 9 March 1831 at Castletownroche; arrived in New York in 1849, aged 18, and moved in with Denis and Hannah's family.",
+  "A stone mason. Took the oath of U.S. citizenship on 12 October 1855.",
+  "Married Mary Roche — baptized in the same parish on 29 Feb 1828 — in New York in 1854. Two Castletownroche children, an ocean away, marrying in Manhattan.",
+  "“I assume Michael was a heavy drinker, as his son, Moses, was said to be a teetotaler due to the fact that his father drank too much.”",
+  "Died of pneumonia at 166 East 105th Street — January 9, 1898 by the family's account; January 10 by the death certificate. The one-day disagreement survives in the book as an honest open question.",
+  "After Mary died in 1862, aged 34, he married Catherine Kavanagh of Co. Kilkenny; their four children all died in infancy. Of the family's 28 children born in New York in those generations, John counts only 11 who lived past age nine."],
+  s:[7249,7303,7304,7307,7310]},
+ john1833:{cls:"mul",n1:"John Mulchinach",yrs:"b. 1833",facts:[
+  "Baptized 19 August 1833 at Castletownroche, sponsors Charles Mansfield and Ellen Keily.",
+  "“I know little about John,” his namesake writes. “What became of Patrick and Margaret's son, John?” remains one of the book's open questions — possibly the John Mulshine who turned up in Kansas in 1876."],
+  s:[7250,7445]},
+ patrick1835:{cls:"mul",n1:"Patrick Mulchinach",yrs:"b. 1835",facts:[
+  "Baptized 12 May 1835; his sponsors were Michael Mulchinock and Margaret Roche — “again the Roche name appears,” John notes, years before his great-grandparents married in New York."],
+  s:[7253]},
+ margaret1837:{cls:"mul",n1:"Margaret Mulchinach",n2:"& William Hefferran",yrs:"b. 1837 · m. NYC 1869",facts:[
+  "Baptized 15 November 1837 — entry No. 20 in the parish register, boxed by hand in the copy John kept.",
+  "She followed her brothers to New York and married William Hefferran in Manhattan on 27 November 1869."],
+  s:[7252,7255,7258]},
+ dennis1857:{cls:"aus anchor",n1:"Dennis Mulshine",n2:"& Janet Smith",yrs:"1857–1925 · to Australia, 1877",facts:[
+  "Michael and Mary's second son — a 20-year-old New York bricklayer who sailed on the N. Boynton, the first ship of New South Wales' scheme to attract American tradesmen, arriving Port Jackson 22 May 1877.",
+  "The immigration ledger row survives, marked by John's hand: “Mulshine, Denis, 20, Bricklayer, New York, R.C.” And beside the newspaper sketch of the ship: “Dennis Mulshine was on this ship for its arrival in Australia.”",
+  "He settled in Victoria, married Janet Smith in 1888 (he 31, she 17), raised a family in Richmond, and worked as a bricklayer and builder until his death at Flaggy Creek in 1925.",
+  "“When you are investigating your ancestry often times you hit walls. Occasionally, you stumble on gold.”"],
+  s:[7303,7409,7410,7423,7426]},
+ mosesjohn:{cls:"mul anchor",n1:"Moses John Mulshine",n2:"& Margaret Mary Madden",yrs:"1859–1913 · “Mayor of Second Avenue”",facts:[
+  "John's grandfather — grocer's clerk, later “fruit designer,” and by family lore the “Mayor of Second Avenue.” A teetotaler, they said, because his father drank too much.",
+  "Married Margaret Mary Madden on 18 November 1886; they raised their children through the Bronx and Manhattan tenement years.",
+  "When their small daughter Margarit was dying in 1901, “it is family lore that this death broke Moses' heart. He tried to keep her alive by waking her in the middle of the night and taking her out of the tenements for fresh air.”",
+  "He died of asthma in 1913 after eleven months of treatment; Margaret followed in 1923. Both rest at Calvary."],
+  s:[7303,7334,7335,7341,7354]},
+ madden:{cls:"madden",n1:"Owen Madden",n2:"& Ellen Falvey",yrs:"m. New York 1855 · Kilbarry, Cork",facts:[
+  "Owen Madden of Kilbarry, Co. Cork (son of Timothy Madden and Mary Mulvihill) married Ellen Falvey in New York in 1855 — nine children in nineteen years, at least three of whom died within two years of birth.",
+  "Their daughter Margaret Mary Madden married Moses John Mulshine, joining the Madden line to the family.",
+  "Ellen rests at Calvary with four of her children."],
+  s:[7334,7342,7345,7349]},
+ auskids:{cls:"aus",n1:"The Australian cousins",n2:"seven children in Richmond, Victoria",yrs:"1890–1969",facts:[
+  "Dennis and Janet's children, born in Richmond: Charles Denis (1890), Vera May (1894), Violet Mary (1896), Violet May (1897, died in infancy), Clarence Hector “Clarrie” (1901), Flor Esther “Essie” (1904), and Bessie (1909).",
+  "Vera May married Frank Whelan of Liverpool at St Joseph's, Malvern, on 2 October 1920 — her brother Charles and mother Janet signed as witnesses. Their son Denis “Terry” Whelan was born in 1921.",
+  "The album pages survive: Frank & Vera; Frank, Vera & Terry; Essie, Vera & Bessie together in later years; Clarrie with Vera in 1969.",
+  "“With his death our Mulshine direct blood line to Australia died as well,” John writes of Clarrie, who died 29 August 1969 — though electoral rolls trace Mulshines in Victoria to 1980."],
+  s:[7399,7400,7402,7403,7406,7407,7408]},
+ infants3:{cls:"mul",n1:"Five little ones",yrs:"Calvary Cemetery",memorial:true,facts:[
+  "Eugene (1891–92), Helen (1893), Margarit (1896–1901), Moses John Jr. (1897–98), and Joseph (1904) — Moses and Margaret's children who did not grow up, remembered together at the family plot at Calvary.",
+  "Their names are why John wrote: “The diseases of the day and the living conditions of the time for the poor were horrific.”"],
+  s:[7334]},
+ michaelA:{cls:"mul",n1:"Michael Aloysius",yrs:"1887–1957",facts:[
+  "Eldest surviving son of Moses and Margaret; “established the first link to the New Jersey side of the Mulshine family.” Family lore says he and his brother Vincent didn't get along."],
+  s:[7335,7340]},
+ molly:{cls:"mul",n1:"Mary “Molly”",n2:"& Tash Roach",yrs:"1890–1949",facts:[
+  "A stenographer; married John Tatian “Tash” Roach in 1912. In his later years John's father Vincent lived with Molly and Tash's family — “They were supposedly wonderful people.”"],
+  s:[7335,7337,7348]},
+ agnes:{cls:"mul",n1:"Agnes Clair",n2:"& Bill Haltigan",yrs:"1900–1990",facts:[
+  "Married William J. Haltigan on 1 June 1925 in the Bronx; lived to ninety, dying at Brookhaven in 1990."],
+  s:[7335,7350]},
+ eileen:{cls:"mul",n1:"Helen “Eileen”",n2:"& John Gallagher · & Bill Henning",yrs:"b. 1903",facts:[
+  "Her son Dick Gallagher became an NYPD homicide lieutenant. Widowed, she later married Bill Henning — who learned he'd been drafted into WWII when his number went up on the Yankee Stadium scoreboard. He served as a cook.",
+  "“Eileen and my dad looked similar in their faces and had similar body habits (looking over glasses, etc.)... apparently... dad's favorite sibling.” John's parents loved visiting them in the Catskills to antique and play bridge."],
+  s:[7335,7358]},
+ vincent:{cls:"mul anchor",n1:"Vincent Joseph Mulshine",yrs:"1905–1966 · Wall Street",facts:[
+  "John's father. Started on the New York Stock Exchange as a “board boy” at twelve; retired a Fahnestock & Co. stockbroker.",
+  "“He could be a difficult man... very intelligent, frustrated and biting with sarcasm.” When money ran short he'd stop drinking and take a second job — and years later, once flush, he tracked down the Bronx dentist who had treated his children for free, and paid him.",
+  "Every Christmas he placed a checkerboard, a horn, and a drum under the tree — a tradition John kept. Thanksgiving mornings meant football with his sons.",
+  "The book keeps his photographs: writing at the table by the lace curtains; in a 1920s bathing suit on the rocks with Dorothy; at Jack Dempsey's Restaurant with Eileen and Bill."],
+  s:[7351,7353,7355,7356,7358,7361]},
+ loretta:{cls:"mul",n1:"Loretta",n2:"& Pat Garrelts",yrs:"1909–1968",facts:[
+  "The youngest; married Lural Hollis “Pat” Garrelts, lived in Kansas and later Tupper Lake, NY — where, her sister-in-law reported, the local bar featured “a bunch of lumberjacks dancing with each other.” Five sons and a daughter."],
+  s:[7335,7344]},
+ // ————— Haigh river —————
+ alden:{cls:"haigh",capsule:true,n1:"John Alden & Priscilla Mullens · the Mayflower, 1620",lineage:"alden",facts:[]},
+ charlemagne:{cls:"haigh",capsule:true,n1:"Charlemagne, Emperor of the West · A.D. 742",lineage:"charlemagne",facts:[]},
+ gallup:{cls:"haigh",n1:"Lucy Gallup",n2:"& Stephen Haley",yrs:"Groton, Connecticut",facts:[
+  "Where the two great lineage charts meet: Lucy Gallup — descended through the Gallups of Groton from Charlemagne's line, and through Bridget Palmer from John and Priscilla Alden of the Mayflower — married Stephen Haley of Groton.",
+  "Their son Dudley carried both threads to New York. The charts were researched in the 1940s by a St. John's University professor for the family, and John reproduces them in full: forty-one numbered generations from Charlemagne, eleven from the Mayflower."],
+  s:[7455,7456,7457,7458,7459]},
+ haley:{cls:"haigh",n1:"Dudley Haley",n2:"& Rebecca Voorhees",yrs:"1816–1890 · Fulton Fish Market",facts:[
+  "A wholesale fish merchant remembered in family lore as founder of the Fulton Fish Market — John gently corrects the record: the market preceded him, “but he and later his son Albert were perhaps the most important forces behind its success.”",
+  "By 1865 he owned a Brooklyn brownstone where his newly married daughter Eliza and her husband J. Lloyd Haigh first lived.",
+  "His son Albert's widow Katherine built the Historic Haley Mansion at Mystic, Connecticut, in 1904 — on the National Register today."],
+  s:[7367,7388,7394,7397,7398]},
+ haigh:{cls:"haigh anchor",n1:"J. Lloyd Haigh",n2:"& Eliza Voorhees Haley",yrs:"1835–1917 · the Brooklyn Bridge wire",facts:[
+  "The book's most cinematic figure. His Brooklyn Wire Mills — 300 men and boys, day and night — won the contract for the Brooklyn Bridge's cable wire; engineer Washington Roebling's 1878 letter exposed him substituting rejected wire, and in 1880 he went to Sing Sing for forgery.",
+  "He courted the singer Jennie Hughes by buying out every box at her shows — a bigamy scandal the papers feasted on. Once among the wealthiest men in Brooklyn, he was arrested years later for stealing an eight-cent loaf of bread in Harlem.",
+  "He was also, the book notes, “the first paid subscriber to put the telephone to a business practical use” — his line strung over the half-finished bridge itself.",
+  "Eliza, raised in Haley comfort, never wavered: “She never uttered a word of complaint or reproach.” She died in January 1881, days after childbirth, of what the papers called a broken heart; the warden could not release her husband for the funeral. Her flat stone at Woodlawn — ELIZA VOORHIS HAIGH, 1844–1881 — is the only marker; his grave is unmarked.",
+  "John's verdict: “It would be interesting to sit down with Steven Spielberg and lay out the life of Joseph Lloyd Haigh. There's got to be a time piece movie there!”"],
+  s:[7318,7320,7321,7322,7367,7375,7377,7379]},
+ robertdudley:{cls:"haigh",n1:"Robert Dudley Haigh",n2:"& Loretta Wolff",yrs:"1873–1945",facts:[
+  "Son of the wire magnate, born in Manhattan in 1873 — a fireman-engineer photographed in workshop doorways rather than boardrooms.",
+  "Married Loretta G. Wolff in 1901; their daughter Dorothy was John's mother. An infant son, John Haigh, lived two days in 1913 — the uncle John never had.",
+  "Visiting Dorothy's young family in the Bronx tenements upset him so much he gave her $8,000 for a house — the house in Hollis, Queens, where the modern Mulshines began.",
+  "He and Loretta divorced in 1921; Loretta died of a stroke in 1929 — Dorothy came home to find her by the window she had been washing. Robert remarried that same year and settled in Winsted, Connecticut, dying five weeks after his second wife Jessie in 1945."],
+  s:[7352,7364,7374,7384,7385,7386,7387,7392]},
+ dorothy:{cls:"haigh anchor",n1:"Dorothy Marie Haigh",yrs:"1908–1986",facts:[
+  "John's mother — a model before her marriage, photographed by a waterfall in a bobbed haircut and dark bathing suit.",
+  "Practically an only child, she carried the Haigh line — and with it, per the 1940s research, descent from “Charlesmagne” and from John and Priscilla Alden (“Speak for yourself, John”) of the Mayflower.",
+  "The family called her a gypsy — sixteen homes by the time her eldest was sixteen.",
+  "When John's biology teacher swore he would never graduate Chaminade, she waited for graduation day 1967, found the man, and asked: “Did you watch my son get his diploma today?”",
+  "Widowed in 1966, she married Ben Licata — a Sicilian bartender who sang Italian songs into a drop-down microphone — in Florida in 1975. She and John shared Sweet Rob Roys there; one was his last gift to her in the hospital."],
+  s:[7351,7352,7357,7359,7364,7365,7366]},
+ // ————— confluence and after —————
+ vd:{cls:"mul anchor",n1:"Vincent & Dorothy",yrs:"married 28 December 1929",facts:[
+  "The two rivers meet: Vincent Joseph Mulshine of the Castletownroche line married Dorothy Marie Haigh of the Haigh–Haley–Alden line in the Bronx on 28 December 1929.",
+  "Seven children: Doris, Vincent Jr., Maureen, Barbara Ann, Robert, Michael, and John.",
+  "Sixty-six years later, John married Patricia on the same calendar date — 28 December 1995."],
+  s:[7351,7353,7354,7360]},
+ doris:{cls:"mul",n1:"Doris Marie",n2:"& Terrance Moran",yrs:"b. 1930",facts:[
+  "A nurse — Mary Immaculate Hospital, later school nurse in Sayville. The night before small John's tonsillectomy, it was Doris who sat by his bed to calm him.",
+  "Both of the book's great lineage charts — Charlemagne's forty-one generations and the Mayflower's eleven — are titled “The Ancestry of Doris Marie Mulshine,” researched by her St. John's University professor in the 1940s.",
+  "Married Terrance Moran; two sons, Tom and Paul."],
+  s:[7352,7455,7459]},
+ vincentjr:{cls:"mul",n1:"Vincent Jr.",yrs:"1932–1993",facts:["Six children with his first wife Rose Keller — Vincent, Rose Marie, Andy, Kevin, Douglas, and Brian — most raised in the Miami area."],s:[7352]},
+ maureen:{cls:"mul",n1:"Maureen",yrs:"1934–2005",facts:["Made her life in Pennsylvania — “Mrs. Maureen Adams of Lancaster, Pa.” in her father's 1966 obituary."],s:[7353,7361]},
+ barbara:{cls:"mul",n1:"Barbara Ann",n2:"& Jim Murphy",yrs:"1938–1987",facts:[
+  "Married Jim Murphy — “a classic Irishman....gregarious, sentimental, hot tempered, and warm hearted.” Three children: Kathy, Jim Jr., and Michael.",
+  "The Murphys and the Mulshines lived down the street from each other in Massapequa; later Dorothy lived on the second floor of their mother-daughter home."],
+  s:[7353]},
+ robert:{cls:"mul",n1:"Robert Anthony",yrs:"1941–2007",facts:["Of Bronxville in the 1966 obituary; the photograph on the lawn — folding chairs, tray tables, a clothesline — catches him with the family in the seventies."],s:[7353,7359]},
+ michaelj:{cls:"mul",n1:"Michael Joseph",yrs:"1944–2007",facts:[
+  "“I have always felt that Michael was the best of the seven siblings. He had a great sense of humor and was very generous” — the brother who kept the scattered siblings in touch with each other.",
+  "An Army lieutenant at Fort Eustis when their father died; three children — Ann Marie, Michael, and Carol Lynne."],
+  s:[7353,7361]},
+ johnA:{cls:"mul anchor",n1:"John Andrew Mulshine",yrs:"b. 26 November 1949 · the author",facts:[
+  "The seventh child, the family's historian, and the writer of the book this tree is drawn from — the letter that ends “Sláinte! Dad.”",
+  "Chaminade '67 (despite Brother Oleksiak's predictions), St. John Fisher College, Rochester.",
+  "Five children with Kathy Hannel: David (1976), Barbara Ann (1980) — named for her aunt — Margaret “Maggie” (1981), Sara (1983), and Emily Marie, born and lost on her due date, 7 June 1987.",
+  "Married Patricia Carole Applegate Olberding on 28 December 1995 — his parents' wedding date, sixty-six years on.",
+  "He stood at the Castletownroche town sign in 1991, and spent thirty years walking his family back through parish registers, ship manifests, censuses, and cemetery maps so that, as he wrote to his children, “This is for you and your children, or grandchildren to add down the road.”"],
+  s:[7241,7242,7243,7353,7445]},
+ johnkids:{cls:"mul",n1:"David · Barbara Ann · Maggie · Sara",n2:"& Emily Marie † 1987",yrs:"the next generation",facts:[
+  "David Edward (1976), Barbara Ann (1980), Margaret Patricia “Maggie” (1981), and Sara Elizabeth (1983) — Sara born on David's birthday, seven years apart.",
+  "Emily Marie was born and died on her due date, 7 June 1987. She is part of the story too.",
+  "“This is for you and your children, or grandchildren to add down the road.”"],
+  s:[7353]}
+};
+
+const LINEAGES = {
+ charlemagne:{title:"Descent from Charlemagne — 41 generations",note:"As compiled for the family in the 1940s and reproduced in the book (pp. 172–175 of the digital edition). Spellings preserved as typed.",entries:[
+  "Charlemagne, Emperor of the West, b. A.D. 742 ⚭ Hildegarde","Louis the First, King of France ⚭ Judith the Fair","Charles the Second ⚭ Ermontrudis","Louis the Second ⚭ Adelaide","Charles the Third, “the Simple” ⚭ Princess Edgiva, granddaughter of Alfred the Great","Louis the Fourth ⚭ Princess Gerberga de Saxe (A.D. 939)","Charles, Duke of Lorraine ⚭ Frist Bonne d'Ardenne","Gerberge, Countess of Lorraine ⚭ Lambert the First","Lambert the Second, Count of Mans ⚭ Ode of Lorraine","Henry the Second, Duke of Brabant ⚭ Adela of Thuringia","Godfried the First, Duke of Lower Lorraine ⚭ Ida de Namur","Adelicia, the Fair Maid of Brabant, widow of Henry I of England ⚭ William de Albini, Earl of Essex and Arundel","William, second Earl of Arundel ⚭ Maude Saint Hilliary","William, third Earl of Arundel ⚭ Mabell of Chester","Lady Mabell d'Albini ⚭ Robert of Tatteshall","Emma of Tatteshall ⚭ Osbert de Cailly","Sir Hugh de Cailly, Lord of Owby ⚭ Agnes of Harmstead","Sir William de Cailly ⚭ Catharine","John de Cailly, High Sheriff of Norfolk and Suffolk ⚭ Maude","John Cailly, Lord of Normanton","William Cayley, Lord of Normanton","Jennet Cayley, sole heir ⚭ John Lake, Lord of Normanton Manor","John Lake ⚭ Jane Drakes of Yorkshire","John Lake of Normanton","Lancelot Lake ⚭ Margaret Twisloton","John Lake ⚭ Catherine Pecke","Lancelot Lake ⚭ Emma Northend of Halifax","John Lake of Erby, Lincolnshire ⚭ — Osgarby","Richard Lake ⚭ Anne Morelly of Claxby","John Lake ⚭ Margaret Reade of Wickford, Essex","Hannah Lake ⚭ Captain John Gallup Jr. of Stonington","Benadam Gallup ⚭ Esther Prentice of New London","Lieut. Benadam Gallup ⚭ Eunice Cobb, “a daughter of the Mayflower” (1716)","Col. Benadam Gallup, officer of the Revolution ⚭ Hannah Avery of Groton","Col. Benadam Gallup ⚭ Bridget Palmer, lineal descendant of John and Priscilla Alden (1766)","Lucy Gallup ⚭ Stephen Haley of Groton","Dudley Haley, of the Fulton Fish Market ⚭ Rebecca P. Voorhis","Eliza Voorhis Haley ⚭ Joseph Lloyd Haigh","Robert Dudley Haigh ⚭ Loretta Wolf","Dorothy Marie Haigh ⚭ Vincent Mulshine","Doris Marie Mulshine"]},
+ alden:{title:"Descent from the Mayflower — 11 generations",note:"John Alden and Priscilla Mullens, 1620, to the Mulshine children (p. 176 of the digital edition).",entries:[
+  "John Alden (b. England 1599, d. Duxbury 1686) ⚭ Priscilla Mullens, spring 1621","David Alden (1646–1719) ⚭ Mary Southworth, 1670","Priscilla Alden ⚭ Samuel Chesebrough of Stonington, 1699","Priscilla Chesebrough (b. 1704) ⚭ Thomas Palmer, 1733","Bridget Palmer (1743–1823) ⚭ Col. Benadam Gallup","Lucy Gallup ⚭ Stephen Haley","Dudley Haley ⚭ Rebecca F. Voorhis","Eliza Voorhis Haley ⚭ Joseph Lloyd Haigh","Robert Dudley Haigh ⚭ Loretta Wolf","Dorothy Marie Haigh ⚭ Vincent Mulshine","Doris Marie Mulshine"]}
+};
+
+// ————— layout: [x, y, w] hand-tuned on a 2300x2900 canvas —————
+const L = {
+ patrick:[640,120,300],
+ denis1823:[160,330,250], moses1826:[430,330,190], michael:[660,330,260], john1833:[940,330,160], patrick1835:[1120,330,160], margaret1837:[1300,330,230],
+ madden:[1050,560,250],
+ dennis1857:[240,600,250], mosesjohn:[660,600,290],
+ auskids:[190,810,300],
+ infants3:[1010,830,180],
+ michaelA:[130,1040,170], molly:[320,1040,180], agnes:[520,1040,180], eileen:[720,1040,230], vincent:[970,1040,250], loretta:[1240,1040,180],
+ charlemagne:[1900,120,360], alden:[1900,220,360],
+ gallup:[1930,340,290],
+ haley:[1930,540,290],
+ haigh:[1900,740,330],
+ robertdudley:[1920,980,300],
+ dorothy:[1560,1040,240],
+ vd:[1210,1330,300],
+ doris:[240,1580,230], vincentjr:[500,1580,160], maureen:[690,1580,160], barbara:[880,1580,220], robert:[1130,1580,170], michaelj:[1330,1580,170], johnA:[1550,1580,300],
+ johnkids:[1520,1840,340]
+};
+
+// links: [from, to, type]
+const LINKS = [
+ ["patrick","denis1823"],["patrick","moses1826"],["patrick","michael"],["patrick","john1833"],["patrick","patrick1835"],["patrick","margaret1837"],
+ ["michael","dennis1857","thick"],["michael","mosesjohn","thick"],
+ ["dennis1857","auskids"],
+ ["madden","mosesjohn","marriage"],
+ ["mosesjohn","infants3"],["mosesjohn","michaelA"],["mosesjohn","molly"],["mosesjohn","agnes"],["mosesjohn","eileen"],["mosesjohn","vincent","thick"],["mosesjohn","loretta"],
+ ["charlemagne","gallup","marriage"],["alden","gallup","marriage"],
+ ["gallup","haley"],["haley","haigh","thick"],["haigh","robertdudley","thick"],["robertdudley","dorothy","thick"],
+ ["vincent","vd","thick"],["dorothy","vd","thick"],
+ ["vd","doris"],["vd","vincentjr"],["vd","maureen"],["vd","barbara"],["vd","robert"],["vd","michaelj"],["vd","johnA","thick"],
+ ["johnA","johnkids","thick"]
+];
+
+const GLABELS = [
+ [70,110,"IRELAND · CASTLETOWNROCHE"],
+ [70,320,"THE CROSSING · NEW YORK 1845–1849"],
+ [70,590,"FIRST AMERICAN GENERATIONS"],
+ [70,800,"AUSTRALIA · 1877"],
+ [70,1030,"THE BRONX YEARS"],
+ [1870,100,"THE HAIGH LINE"],
+ [70,1570,"SEVEN CHILDREN · 1930–1949"],
+ [70,1830,"AND ONWARD"]
+];
+
+// ————— render —————
+const svg = document.getElementById("svg");
+const NS = "http://www.w3.org/2000/svg";
+const world = document.createElementNS(NS,"g");
+svg.appendChild(world);
+
+function el(name,attrs,parent){const e=document.createElementNS(NS,name);for(const k in attrs)e.setAttribute(k,attrs[k]);(parent||world).appendChild(e);return e;}
+
+function anchorPts(id){const [x,y,w]=L[id];const h=P[id].capsule?34:(P[id].n2?66:52);return {top:[x+w/2,y],bot:[x+w/2,y+h],h};}
+
+for(const [a,b,t] of LINKS){
+  const A=anchorPts(a),B=anchorPts(b);
+  const x1=A.bot[0],y1=A.bot[1],x2=B.top[0],y2=B.top[1];
+  const my=(y1+y2)/2;
+  el("path",{d:`M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`,class:"link"+(t?" "+t:"")});
+}
+
+for(const [gx,gy,txt] of GLABELS){const t=el("text",{x:gx,y:gy,class:"glabel"});t.textContent=txt;}
+
+for(const id in L){
+  const [x,y,w]=L[id],p=P[id];
+  const h=p.capsule?34:(p.n2?66:52);
+  const g=el("g",{class:(p.capsule?"capsule card ":"card ")+p.cls,transform:`translate(${x},${y})`});
+  g.addEventListener("click",()=>openPanel(id));
+  el("rect",{width:w,height:h,rx:p.capsule?17:7},g);
+  if(p.capsule){
+    const t=el("text",{x:w/2,y:22,"text-anchor":"middle"},g);t.textContent=p.n1;
+  }else{
+    const t1=el("text",{x:w/2,y:22,"text-anchor":"middle",class:"nm"},g);t1.textContent=p.n1;
+    let yy=22;
+    if(p.n2){yy+=19;const t2=el("text",{x:w/2,y:yy,"text-anchor":"middle",class:"nm2"},g);t2.textContent=p.n2;}
+    if(p.yrs){yy+=17;const t3=el("text",{x:w/2,y:yy,"text-anchor":"middle",class:"yrs"},g);t3.textContent=p.yrs;}
+  }
+}
+
+// footer note inside canvas
+const note=el("text",{x:1150,y:2050,"text-anchor":"middle",class:"noteline"});
+note.textContent="Drawn from the 201 pages of John Mulshine's family history, photographed and transcribed August 2026. Every card cites its pages in the book.";
+
+// ————— pan & zoom —————
+let vx=0, vy=0, scale=1;
+function apply(){world.setAttribute("transform",`translate(${vx},${vy}) scale(${scale})`);}
+function fit(){
+  const bw=2350, bh=2150;
+  const W=innerWidth, H=innerHeight;
+  scale=Math.min(W/bw, H/bh)*0.96;
+  vx=(W-bw*scale)/2; vy=(H-bh*scale)/2+20;
+  apply();
+}
+fit(); addEventListener("resize",fit);
+const stage=document.getElementById("stage");
+let drag=null, pinch=null;
+const pts=new Map();
+function zoomAbout(cx,cy,f){scale*=f;vx=cx-(cx-vx)*f;vy=cy-(cy-vy)*f;apply();}
+stage.addEventListener("pointerdown",e=>{
+  if(e.target.closest(".card"))return;
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  stage.setPointerCapture(e.pointerId);
+  if(pts.size===1){drag={x:e.clientX,y:e.clientY,vx,vy};stage.classList.add("dragging");}
+  else if(pts.size===2){
+    drag=null;
+    const [a,b]=[...pts.values()];
+    pinch={d:Math.hypot(a.x-b.x,a.y-b.y),scale,vx,vy,mx:(a.x+b.x)/2,my:(a.y+b.y)/2};
+  }
+});
+stage.addEventListener("pointermove",e=>{
+  if(!pts.has(e.pointerId))return;
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&pts.size>=2){
+    const [a,b]=[...pts.values()];
+    const d=Math.hypot(a.x-b.x,a.y-b.y);
+    const f=d/pinch.d;
+    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    scale=pinch.scale*f;
+    vx=mx-(pinch.mx-pinch.vx)*f;
+    vy=my-(pinch.my-pinch.vy)*f;
+    apply();
+  }else if(drag){vx=drag.vx+(e.clientX-drag.x);vy=drag.vy+(e.clientY-drag.y);apply();}
+});
+function lift(e){
+  pts.delete(e.pointerId);
+  if(pts.size<2)pinch=null;
+  if(pts.size===1){const [a]=[...pts.values()];drag={x:a.x,y:a.y,vx,vy};}
+  else if(pts.size===0){drag=null;stage.classList.remove("dragging");}
+}
+stage.addEventListener("pointerup",lift);
+stage.addEventListener("pointercancel",lift);
+stage.addEventListener("wheel",e=>{e.preventDefault();zoomAbout(e.clientX,e.clientY,e.deltaY<0?1.1:0.9);},{passive:false});
+stage.addEventListener("dblclick",e=>{if(!e.target.closest(".card"))zoomAbout(e.clientX,e.clientY,1.5);});
+
+// ————— detail panel —————
+const panel=document.getElementById("panel"), inner=document.getElementById("panelInner");
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function openPanel(id){
+  const p=P[id];
+  let html="";
+  if(p.lineage){
+    const ln=LINEAGES[p.lineage];
+    html=`<h2>${esc(ln.title)}</h2><div class="yrs">${esc(ln.note)}</div><ol class="lineage">`+
+      ln.entries.map(e=>`<li>${esc(e)}</li>`).join("")+`</ol>`;
+  }else{
+    html=`<h2>${esc(p.n1)}${p.n2?" <span style='font-size:15px'>"+esc(p.n2)+"</span>":""}</h2>`+
+      `<div class="yrs">${esc(p.yrs||"")}</div><ul class="facts">`+
+      p.facts.map(f=>`<li>${esc(f)}</li>`).join("")+`</ul>`+
+      (p.s?`<div class="srcs">${esc(srcline(p.s))}</div>`:"");
+  }
+  inner.innerHTML=html;
+  panel.classList.add("open");
+}
+function closePanel(){panel.classList.remove("open");}
+stage.addEventListener("pointerdown",e=>{if(!e.target.closest(".card"))closePanel();});
+</script>
+</body>
+</html>
