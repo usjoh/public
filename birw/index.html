@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block Island Race Week &mdash; 1988&ndash;2013</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #000;
+    --text: #e0e0e0;
+    --text-bright: #ffffff;
+    --text-dim: #666;
+    --gold: #d4a843;
+    --accent: #7eb8d0;
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Slideshow container ── */
+  .slideshow {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #000;
+  }
+
+  /* ── Slide (photo or text card) ── */
+  .slide {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 0;
+    background: #000;
+  }
+  .slide.active {
+    opacity: 1;
+    z-index: 3;
+    pointer-events: auto;
+  }
+  .slide.previous {
+    z-index: 2;
+  }
+
+  /* Photo slides */
+  .slide-photo {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .slide-photo {
+    transition: transform 8s ease-in-out;
+    transform: scale(1.0);
+  }
+  .slide.active .slide-photo {
+    transform: scale(1.04) translate(-0.3%, -0.2%);
+  }
+
+  /* Photo caption overlay */
+  .slide-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 3rem 2rem 1.5rem;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    text-align: center;
+    z-index: 3;
+  }
+  .slide-caption .caption-text {
+    font-size: 1rem;
+    color: var(--text-dim);
+    font-style: italic;
+    letter-spacing: 0.02em;
+  }
+
+  /* Text card slides (chapter intros, title, closing) */
+  .slide-text {
+    text-align: center;
+    padding: 2rem;
+    max-width: 800px;
+  }
+  .slide-text h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    color: var(--text-bright);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 0.5rem;
+  }
+  .slide-text .subtitle {
+    font-family: var(--serif);
+    font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+    color: var(--gold);
+    font-style: italic;
+    margin-bottom: 2rem;
+  }
+  .slide-text .body {
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
+    line-height: 1.9;
+    color: var(--text);
+    margin-bottom: 1.5rem;
+  }
+  .slide-text .stats {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-top: 2rem;
+  }
+  .slide-text .stat-number {
+    font-family: var(--serif);
+    font-size: 3rem;
+    color: var(--text-bright);
+    font-weight: 700;
+    display: block;
+  }
+  .slide-text .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  /* Chapter title cards */
+  .slide-text .chapter-year {
+    font-family: var(--serif);
+    font-size: clamp(4rem, 8vw, 7rem);
+    color: var(--text-bright);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+  .slide-text .chapter-title {
+    font-family: var(--serif);
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    color: var(--gold);
+    font-style: italic;
+    margin-bottom: 0.5rem;
+  }
+  .slide-text .chapter-meta {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.03em;
+  }
+  .slide-text .chapter-narrative {
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    line-height: 1.9;
+    color: var(--text);
+    max-width: 650px;
+    margin: 0 auto;
+  }
+
+  /* Memorial / closing */
+  .slide-text .memorial {
+    font-family: var(--serif);
+    font-size: 2rem;
+    color: var(--text-bright);
+    margin-bottom: 1.5rem;
+  }
+  .slide-text .tagline {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    color: var(--gold);
+    font-style: italic;
+    margin-top: 2rem;
+  }
+  .slide-text .credit {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 3rem;
+    line-height: 1.6;
+  }
+
+  /* ── Controls overlay ── */
+  .controls {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 100;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  body:hover .controls,
+  .controls.visible {
+    opacity: 1;
+  }
+  .controls button {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .controls button:hover {
+    background: rgba(255,255,255,0.2);
+  }
+  .controls .progress {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-family: var(--sans);
+  }
+
+  /* ── Start screen ── */
+  .start-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: opacity 0.8s;
+  }
+  .start-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .start-screen h1 {
+    font-family: var(--serif);
+    font-size: 3rem;
+    color: var(--text-bright);
+    margin-bottom: 0.5rem;
+  }
+  .start-screen .sub {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    color: var(--gold);
+    font-style: italic;
+    margin-bottom: 3rem;
+  }
+  .start-button {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: var(--text-bright);
+    font-family: var(--sans);
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 1rem 3rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 0.05em;
+  }
+  .start-button:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.4);
+  }
+  .start-hint {
+    margin-top: 2rem;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--gold);
+    z-index: 50;
+    transition: width 0.3s ease;
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div class="start-screen" id="startScreen">
+  <h1>Block Island Race Week</h1>
+  <div class="sub">1988 &mdash; 2013</div>
+  <button class="start-button" id="startBtn">Start the Show</button>
+  <div class="start-hint">Spacebar to pause &middot; Arrow keys to navigate &middot; F for fullscreen</div>
+</div>
+
+<!-- Audio -->
+<audio id="bgMusic" loop preload="auto">
+  <source src="birw-photos/harbor-of-old-friends.mp3" type="audio/mpeg">
+</audio>
+
+<!-- Slideshow -->
+<div class="slideshow" id="slideshow"></div>
+
+<!-- Progress bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Controls (visible on hover) -->
+<div class="controls" id="controls">
+  <button id="prevBtn">&larr;</button>
+  <button id="playPauseBtn">Pause</button>
+  <button id="nextBtn">&rarr;</button>
+  <span class="progress" id="progressText">1 / 1</span>
+  <button id="muteBtn">Mute</button>
+  <button id="fullscreenBtn">Fullscreen</button>
+</div>
+
+<script>
+// ── Slide data ──
+const slides = [
+
+  // ═══ TITLE ═══
+  { type: 'text', duration: 12000, html: `
+    <h1>Block Island Race Week</h1>
+    <div class="subtitle">1988 &mdash; 2013</div>
+    <p class="body">
+      One crew. Twenty-five races. Nine boats.<br>
+      A lifetime of friendship on the water.
+    </p>
+  `},
+
+  // ═══ 2001 ═══
+  { type: 'text', duration: 10000, html: `
+    <div class="chapter-year">2001</div>
+    <div class="chapter-title">Thirteen Years In</div>
+    <div class="chapter-meta">Xenophon &bull; Swan 40 &bull; Race Week XXI</div>
+    <p class="chapter-narrative">
+      By 2001, this crew already had over a decade of Block Island behind them.
+      Dark polos, the hillside, the trophy. What started as a racing team had long since
+      become something more &mdash; a crew that already knew exactly who they were.
+    </p>
+  `},
+  { type: 'photo', src: 'birw-photos/2001/01-crew-group-photo.jpg', caption: 'The crew on the hillside — a tradition from the beginning' },
+  { type: 'photo', src: 'birw-photos/2001/02-trophy-xenophon-polo.jpg' },
+  { type: 'photo', src: 'birw-photos/2001/05-skipper-at-helm.jpg' },
+  { type: 'photo', src: 'birw-photos/2001/03-crew-on-deck.jpg' },
+  { type: 'photo', src: 'birw-photos/2001/04-fleet-staging.jpg' },
+  { type: 'photo', src: 'birw-photos/2001/06-two-at-helm.jpg' },
+  { type: 'photo', src: 'birw-photos/2001/07-award-presentation.jpg' },
+  { type: 'photo', src: 'birw-photos/2001/08-two-guys-on-deck.jpg' },
+  { type: 'photo', src: 'birw-photos/2001/09-swimmer-alongside.jpg' },
+  { type: 'photo', src: 'birw-photos/2001/10-crew-on-foredeck.jpg' },
+
+  // ═══ 2002 ═══
+  { type: 'text', duration: 10000, html: `
+    <div class="chapter-year">2002</div>
+    <div class="chapter-title">1st for the Week</div>
+    <div class="chapter-meta">Odette &bull; Swan 431</div>
+    <p class="chapter-narrative">
+      The year the crew brought home the top prize. But what you remember isn&rsquo;t just
+      the results board &mdash; it&rsquo;s the hamming it up on deck, the navigator below with
+      the charts, the kid who came along, the tall ship in the harbor.
+    </p>
+  `},
+  { type: 'photo', src: 'birw-photos/2002/01-crew-hamming-it-up.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/02-full-crew-at-helm.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/03-crew-candid-laughing.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/04-spinnaker-pole-action.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/05-block-island-cliffs.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/06-navigator-below-decks.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/07-crew-under-tent.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/08-helmsman-competitor-closing.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/09-cockpit-candid-smiles.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/10-crew-hillside-formal.jpg', caption: 'The hillside — same tradition, new year' },
+  { type: 'photo', src: 'birw-photos/2002/11-two-skippers-at-helm.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/12-crew-with-young-boy.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/13-tall-ship-harbor.jpg' },
+  { type: 'photo', src: 'birw-photos/2002/14-two-boats-racing.jpg' },
+
+  // ═══ 2009 ═══
+  { type: 'text', duration: 12000, html: `
+    <div class="chapter-year">2009</div>
+    <div class="chapter-title">Stars, Trophies, and Coast Guard Cadets</div>
+    <div class="chapter-meta">Xenophon &bull; Swan 44 &bull; Race Week XXV &bull; 1st for the week</div>
+    <p class="chapter-narrative">
+      Yellow polos. Xenophon takes first for the week. The Milky Way appears over the crew house
+      at midnight. The rental party fills every chair. This was the year we hosted the Coast Guard
+      Cadets and showed them what twenty years of doing this looks like.
+    </p>
+  `},
+  { type: 'photo', src: 'birw-photos/2009/01-milky-way-crew-house.jpg', caption: 'The Milky Way over the crew house', duration: 6000 },
+  { type: 'photo', src: 'birw-photos/2009/03-crew-yellow-polos-hillside.jpg', caption: 'Yellow polos — the hillside tradition continues' },
+  { type: 'photo', src: 'birw-photos/2009/02-captains-night-out-dinner.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/04-bow-heavy-spray.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/05-portrait-birw-cap-foulies.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/06-cockpit-racing-fleet-behind.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/07-two-men-arm-around-shoulder.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/08-trophy-massive-grin.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/09-skipper-helm-low-angle.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/10-portrait-orange-cap-contemplative.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/11-full-house-party.jpg', caption: 'Full house at the rental' },
+  { type: 'photo', src: 'birw-photos/2009/12-three-crew-helm-action.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/13-three-at-spinnaker-pole.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/14-two-crew-chatting-tent.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/15-two-men-launch-flag.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/16-race-results-xenophon-first.jpg', caption: 'The results board — Xenophon, first place' },
+  { type: 'photo', src: 'birw-photos/2009/17-three-crew-harbor-casual.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/18-spinnaker-pink-lightning.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/19-xenophon-stern-portrait.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/20-young-crew-grin-foulies.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/21-portrait-goodnight-moon-polo.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/22-ferry-cutting-through-fog.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/23-xenophon-at-dock-above.jpg' },
+  { type: 'photo', src: 'birw-photos/2009/24-crew-with-robot-sail-art.jpg' },
+
+  // ═══ 2010 ═══
+  { type: 'text', duration: 10000, html: `
+    <div class="chapter-year">2010</div>
+    <div class="chapter-title">Our Ultimate Success Year</div>
+    <div class="chapter-meta">Dreamcatcher &bull; Swan 48 &bull; 1st for the week</div>
+    <p class="chapter-narrative">
+      New boat, same crew, white polos at the marina. Dreamcatcher&rsquo;s first Race Week &mdash;
+      and the crew&rsquo;s best ever. Four firsts and a second. Champagne poured over a trophy.
+      Three old friends at the harbor. This was the year the tradition proved it could survive
+      a boat change &mdash; because it was never about the boat.
+    </p>
+  `},
+  { type: 'photo', src: 'birw-photos/2010/01-moonrise-block-island-flag.jpg', caption: 'Moonrise over Block Island', duration: 6000 },
+  { type: 'photo', src: 'birw-photos/2010/02-champagne-trophy-dreamcatcher.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/03-portrait-laughing-flag.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/04-spinnaker-red-jacket-foreground.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/05-two-crew-low-angle-sky.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/06-crew-white-polos-marina.jpg', caption: 'White polos at the marina — Dreamcatcher crew' },
+  { type: 'photo', src: 'birw-photos/2010/07-three-crew-dreamcatcher-polos.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/08-full-crew-cockpit-racing.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/09-profile-portrait-buoy-behind.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/10-captains-night-patio-dinner.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/11-swan-family-alongside.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/12-portrait-calm-smile-flag.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/13-manitou-heeled-coastline.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/14-below-decks-warm-teak.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/15-four-crew-looking-aloft.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/16-skipper-odette-polo-helm.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/17-three-old-friends-harbor.jpg', caption: 'Three old friends at the harbor' },
+  { type: 'photo', src: 'birw-photos/2010/18-champagne-poured-trophy.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/19-competitor-drinking-trophy.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/20-spinnaker-fleet-rainbow.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/21-crew-on-launch-heading-out.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/22-swan-closeup-portrait.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/23-painted-oars-folk-art.jpg' },
+  { type: 'photo', src: 'birw-photos/2010/24-crew-walking-dock.jpg' },
+
+  // ═══ 2013 ═══
+  { type: 'text', duration: 12000, html: `
+    <div class="chapter-year">2013</div>
+    <div class="chapter-title">The Last Chapter (So Far)</div>
+    <div class="chapter-meta">Dreamcatcher &bull; Swan 48 &bull; Race Week XXVII &bull; 25th Anniversary</div>
+    <p class="chapter-narrative">
+      The 25th anniversary of Block Island Race Week. White polos in the fog.
+      Heavy weather racing. Candlelit dinners. The fog rolled in and softened everything
+      that week &mdash; turned the harbor into a watercolor, the dock portraits into something
+      timeless. After twenty-five years of this, the crew knew what they had.
+      You can see it in their faces.
+    </p>
+  `},
+  { type: 'photo', src: 'birw-photos/2013/01-full-crew-white-polos-fog.jpg', caption: 'White polos in the fog — the 25th anniversary crew' },
+  { type: 'photo', src: 'birw-photos/2013/02-crew-candid-before-pose-fog.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/03-portrait-blue-eyes-fleet-behind.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/04-sunset-harbor-silhouette.jpg', caption: 'Block Island harbor at sunset' },
+  { type: 'photo', src: 'birw-photos/2013/05-helmsman-spinnakers-behind.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/06-four-crew-sail-behind-arms.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/07-boom-block-island-race-week-spray.jpg' },
+
+  // Mid-chapter narrative: heavy weather
+  { type: 'text', duration: 8000, html: `
+    <p class="chapter-narrative" style="font-size: 1.2rem;">
+      The heavy weather days were some of the best sailing of the whole run.
+      Dreamcatcher heeled hard through gray seas, the crew in full foul weather gear,
+      laughing through the spray. After a quarter century, they weren&rsquo;t proving
+      anything to anyone. They were just doing what they loved.
+    </p>
+  `},
+
+  { type: 'photo', src: 'birw-photos/2013/36-dreamcatcher-25th-heavy-seas.jpg', caption: 'Dreamcatcher in heavy seas — 25th sticker on the bow', duration: 6000 },
+  { type: 'photo', src: 'birw-photos/2013/08-dreamcatcher-heavy-weather-stern.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/09-crew-on-heeled-deck-wide-angle.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/10-two-crew-laughing-hauling-line.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/11-helmsman-yellow-foulies-remedy.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/12-portrait-spinnaker-bokeh.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/21-full-crew-deck-birw-boom.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/31-crew-on-deck-race-week-boom.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/23-heeled-racing-bow-spray.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/24-crew-hauling-line-effort.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/32-three-generations-winch-action.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/33-helmsman-red-hull-alongside.jpg' },
+
+  // Mid-chapter narrative: off the water
+  { type: 'text', duration: 8000, html: `
+    <p class="chapter-narrative" style="font-size: 1.2rem;">
+      Off the water, the week belonged to the island itself. The fog turned Block Island
+      into a private world &mdash; the Oldport dock, Winfield&rsquo;s glowing through the mist,
+      two friends sitting together in the kind of quiet that only comes after twenty-five
+      years of knowing someone.
+    </p>
+  `},
+
+  { type: 'photo', src: 'birw-photos/2013/14-two-friends-foggy-dock-oldport.jpg', caption: 'Oldport Launch — twenty-five years of friendship', duration: 6000 },
+  { type: 'photo', src: 'birw-photos/2013/15-two-friends-fog-closeup.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/38-winfields-sign-night-fog.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/16-portrait-dreamcatcher-polo-dinner.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/17-portrait-warm-light-dinner.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/18-portrait-glasses-laughing-dinner.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/19-full-moon-closeup.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/20-crew-launch-red-caps-harbor.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/22-looking-up-mast-usa10625.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/25-ospreys-on-nest.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/26-fleet-start-fog.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/27-dreamcatcher-fog-colorful-crew.jpg', caption: 'Dreamcatcher in the fog — every color of foul weather gear' },
+  { type: 'photo', src: 'birw-photos/2013/28-portrait-tongue-out-personality.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/29-crew-with-stuffed-animals.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/13-portrait-goodnight-moon-polo-boat.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/34-block-island-bluffs-lighthouse.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/35-quiet-portrait-winch-yellow-foulies.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/30-25th-anniversary-sticker-rain.jpg', caption: 'Storm Trysail Club — 25th Block Island Race Week' },
+  { type: 'photo', src: 'birw-photos/2013/37-schooner-classic.jpg' },
+  { type: 'photo', src: 'birw-photos/2013/39-25th-sticker-on-bow.jpg' },
+
+  // THE FINAL PHOTO
+  { type: 'photo', src: 'birw-photos/2013/40-final-photo-beer-smile-birw-fleece.jpg', caption: 'The last photo. No trophy, no sunset. Just — we were here, and it was good.', duration: 6000 },
+
+  // ═══ CLOSING ═══
+  { type: 'text', duration: 15000, html: `
+    <div class="memorial">For Skip</div>
+    <p class="body">
+      For everyone who crewed. For the families who let us disappear to Block Island
+      every other summer. For the ones who aren&rsquo;t here tonight.<br><br>
+      One crew. Twenty-five races. Nine boats. 1988 to 2013.
+    </p>
+    <div class="tagline">See you on the water.</div>
+    <p class="credit">
+      Photos by Jeff O&rsquo;Halloran (2001&ndash;2013)<br>
+      Assembled for the BIRW Reunion Dinner &bull; March 28, 2026 &bull; Longfellow&rsquo;s Wayside Inn
+    </p>
+  `},
+];
+
+// ── Engine ──
+const DEFAULT_PHOTO_DURATION = 5000;
+const DEFAULT_TEXT_DURATION = 10000;
+let current = 0;
+let playing = false;
+let timer = null;
+
+const slideshow = document.getElementById('slideshow');
+const startScreen = document.getElementById('startScreen');
+const startBtn = document.getElementById('startBtn');
+const playPauseBtn = document.getElementById('playPauseBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const progressText = document.getElementById('progressText');
+const progressBar = document.getElementById('progressBar');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const controls = document.getElementById('controls');
+
+// Build slide DOM elements
+slides.forEach((s, i) => {
+  const div = document.createElement('div');
+  div.className = 'slide';
+  div.dataset.index = i;
+
+  if (s.type === 'photo') {
+    div.innerHTML = `
+      <div class="slide-photo" style="background-image: url('${s.src}')"></div>
+      ${s.caption ? `<div class="slide-caption"><span class="caption-text">${s.caption}</span></div>` : ''}
+    `;
+  } else {
+    div.innerHTML = `<div class="slide-text">${s.html}</div>`;
+  }
+
+  slideshow.appendChild(div);
+});
+
+// Preload next few images
+function preload(startIdx) {
+  for (let i = startIdx; i < Math.min(startIdx + 5, slides.length); i++) {
+    if (slides[i].type === 'photo') {
+      const img = new Image();
+      img.src = slides[i].src;
+    }
+  }
+}
+
+function showSlide(index) {
+  const allSlides = slideshow.querySelectorAll('.slide');
+
+  // Remove previous class from all
+  allSlides.forEach(s => s.classList.remove('previous'));
+
+  // The currently active slide becomes previous (for crossfade out)
+  const oldActive = slideshow.querySelector('.slide.active');
+  if (oldActive && oldActive.dataset.index != index) {
+    oldActive.classList.remove('active');
+    oldActive.classList.add('previous');
+    // Clean up previous after transition
+    setTimeout(() => oldActive.classList.remove('previous'), 1400);
+  }
+
+  current = index;
+  allSlides[current].classList.add('active');
+
+  // Update progress
+  progressText.textContent = `${current + 1} / ${slides.length}`;
+  progressBar.style.width = `${((current + 1) / slides.length) * 100}%`;
+
+  // Preload upcoming
+  preload(current + 1);
+}
+
+function nextSlide() {
+  if (current < slides.length - 1) {
+    showSlide(current + 1);
+    scheduleNext();
+  } else {
+    // End of show — hold on closing, then loop
+    timer = setTimeout(() => { showSlide(0); scheduleNext(); }, 15000);
+  }
+}
+
+function prevSlide() {
+  if (current > 0) {
+    showSlide(current - 1);
+    if (playing) scheduleNext();
+  }
+}
+
+function scheduleNext() {
+  clearTimeout(timer);
+  if (!playing) return;
+  const s = slides[current];
+  const dur = s.duration || (s.type === 'photo' ? DEFAULT_PHOTO_DURATION : DEFAULT_TEXT_DURATION);
+  timer = setTimeout(nextSlide, dur);
+}
+
+function play() {
+  playing = true;
+  playPauseBtn.textContent = 'Pause';
+  scheduleNext();
+  if (bgMusic) bgMusic.play();
+}
+
+function pause() {
+  playing = false;
+  playPauseBtn.textContent = 'Play';
+  clearTimeout(timer);
+  if (bgMusic) bgMusic.pause();
+}
+
+function togglePlay() {
+  if (playing) pause(); else play();
+}
+
+// ── Event handlers ──
+const bgMusic = document.getElementById('bgMusic');
+bgMusic.volume = 0.4;
+
+startBtn.addEventListener('click', () => {
+  startScreen.classList.add('hidden');
+  controls.classList.add('visible');
+  showSlide(0);
+  play();
+  bgMusic.play();
+  // Fade controls after 3s
+  setTimeout(() => controls.classList.remove('visible'), 3000);
+});
+
+playPauseBtn.addEventListener('click', togglePlay);
+nextBtn.addEventListener('click', () => { nextSlide(); });
+prevBtn.addEventListener('click', () => { prevSlide(); });
+const muteBtn = document.getElementById('muteBtn');
+muteBtn.addEventListener('click', () => {
+  bgMusic.muted = !bgMusic.muted;
+  muteBtn.textContent = bgMusic.muted ? 'Unmute' : 'Mute';
+});
+
+fullscreenBtn.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (startScreen && !startScreen.classList.contains('hidden')) {
+    if (e.key === ' ' || e.key === 'Enter') {
+      startBtn.click();
+      e.preventDefault();
+    }
+    return;
+  }
+  switch(e.key) {
+    case ' ':
+      togglePlay();
+      e.preventDefault();
+      break;
+    case 'ArrowRight':
+    case 'ArrowDown':
+      nextSlide();
+      break;
+    case 'ArrowLeft':
+    case 'ArrowUp':
+      prevSlide();
+      break;
+    case 'f':
+    case 'F':
+      fullscreenBtn.click();
+      break;
+    case 'm':
+    case 'M':
+      muteBtn.click();
+      break;
+  }
+});
+
+// Preload first batch
+preload(0);
+</script>
+
+<script data-goatcounter="https://usjoh.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
