@@ -28,6 +28,15 @@
   #sitenav a{color:var(--soft); text-decoration:none; font-family:Verdana,Geneva,sans-serif;
              font-size:11px; letter-spacing:2px; text-transform:uppercase}
   #sitenav a:hover{color:var(--ink)}
+  /* Narrow screens: the nav pill is fixed top-right and the title runs straight
+     underneath it. Shrink both and reserve the title's right edge. */
+  @media(max-width:700px){
+    header{padding:11px 14px 9px}
+    header h1{font-size:17px; padding-right:158px; line-height:1.25}
+    header .sub{font-size:11.5px; margin-top:2px}
+    #sitenav{top:9px; right:10px; gap:11px; padding:6px 11px}
+    #sitenav a{font-size:10px; letter-spacing:1.2px}
+  }
   #stage{position:absolute; inset:0; cursor:grab; touch-action:none}
   #stage.dragging{cursor:grabbing}
   .card{cursor:pointer}
@@ -350,8 +359,20 @@ function apply(){world.setAttribute("transform",`translate(${vx},${vy}) scale(${
 function fit(){
   const bw=2350, bh=2150;
   const W=innerWidth, H=innerHeight;
-  scale=Math.min(W/bw, H/bh)*0.96;
-  vx=(W-bw*scale)/2; vy=(H-bh*scale)/2+20;
+  const fitAll=Math.min(W/bw, H/bh)*0.96;
+  /* On a portrait phone fit-to-width lands near 0.15, which renders the 15px name
+     text at about 2px — the whole tree arrives unreadable. Open at a legible scale
+     anchored on Vincent & Dorothy (where the two lines converge, and where the
+     landing copy promises to take you) and let the reader pan out; the footer
+     already teaches drag-to-pan and pinch-to-zoom. */
+  const LEGIBLE=0.62, ANCHOR_X=1360, ANCHOR_Y=1356;
+  if(W<700 && fitAll<LEGIBLE){
+    scale=LEGIBLE;
+    vx=W/2-ANCHOR_X*scale; vy=H/2-ANCHOR_Y*scale;
+  }else{
+    scale=fitAll;
+    vx=(W-bw*scale)/2; vy=(H-bh*scale)/2+20;
+  }
   apply();
 }
 fit(); addEventListener("resize",fit);
