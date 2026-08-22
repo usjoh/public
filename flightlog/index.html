@@ -90,6 +90,16 @@
           padding:8px 12px;transition:all .25s}
   #layers button.sel{color:var(--night);background:linear-gradient(180deg,#e8eef8,#b9cbe6)}
   #layers button.sel.amber{background:linear-gradient(180deg,var(--glow),var(--ember))}
+  /* ---------- view controls (roaming; big targets for trackpad/mouse) ---------- */
+  #nav{position:fixed;right:12px;bottom:max(14px, env(safe-area-inset-bottom));z-index:10;
+       display:flex;flex-direction:column;gap:7px;opacity:0;transition:opacity .6s ease;pointer-events:none}
+  #nav.on{opacity:1;pointer-events:auto}
+  #nav.hide{opacity:0;pointer-events:none}
+  #nav button{width:42px;height:42px;border-radius:50%;border:1px solid rgba(151,160,181,.18);
+       background:rgba(12,18,32,.78);color:var(--dim);font-size:19px;line-height:1;cursor:pointer;
+       backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:all .25s}
+  #nav button:hover{color:var(--ink);border-color:rgba(245,181,103,.45);
+       box-shadow:0 0 14px rgba(245,181,103,.2)}
   #close,#minb{position:absolute;top:10px;width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;
          background:rgba(151,160,181,.12);color:var(--dim);font-size:16px;line-height:1}
   #close{right:12px} #minb{right:52px;font-size:18px}
@@ -170,6 +180,12 @@ function fflEnterEvent(){ var first=false;
   <button data-l="stories" class="amber">Stories</button>
   <button data-l="family">Family</button>
   <button data-l="both" class="sel">Both</button>
+</div>
+
+<div id="nav" aria-label="View controls">
+  <button id="zin" aria-label="Zoom in" title="Zoom in">+</button>
+  <button id="zout" aria-label="Zoom out" title="Zoom out">&minus;</button>
+  <button id="zhome" aria-label="See the whole sky" title="See the whole sky">&#8962;</button>
 </div>
 
 <div id="mini" aria-label="Now playing — tap to expand">
@@ -337,13 +353,15 @@ function syncPlayUI(){ const on=!!(audioEl&&!audioEl.paused);
   play.classList.toggle('playing',on); }
 
 let minimized=false;
+const navEl=document.getElementById('nav');
 function minimizeCard(){ if(!focus||minimized) return; minimized=true;
-  card.classList.remove('open');
+  card.classList.remove('open'); navEl.classList.remove('hide');
   if(audioEl && playingId && byId[playingId]){ mtt.textContent=byId[playingId].title||byId[playingId].name;
     mini.classList.add('on'); } }
 function expandCard(){ if(!focus) return; minimized=false;
-  mini.classList.remove('on'); card.classList.add('open'); }
-function hideAllPanels(){ minimized=false; card.classList.remove('open'); mini.classList.remove('on'); }
+  mini.classList.remove('on'); card.classList.add('open'); navEl.classList.add('hide'); }
+function hideAllPanels(){ minimized=false; card.classList.remove('open'); mini.classList.remove('on');
+  navEl.classList.remove('hide'); }
 
 const nodeTitle = n => n.title || n.name;
 const nodeLabel = n => { if(!n.isPerson) return n.title;
@@ -394,7 +412,7 @@ function openStory(id){
   }
   if(s.img && FFL.images[s.img]){ pic.src=FFL.images[s.img]; pic.alt=nodeTitle(s); pic.classList.add('show'); }
   else pic.classList.remove('show');
-  card.classList.add('open');
+  card.classList.add('open'); navEl.classList.add('hide');
   if(playingId&&byId[playingId]) mtt.textContent=nodeTitle(byId[playingId]);
 }
 function travel(id){ // fluid: glide down the thread
@@ -419,12 +437,35 @@ document.getElementById('minb').addEventListener('click',ev=>{ ev.stopPropagatio
 document.getElementById('close').addEventListener('click',ev=>{ ev.stopPropagation(); closeStory(); });
 
 /* enter — arrive at Bill himself, card open, greeting playing */
+/* pointer-aware affordances — trackpad/mouse users get spoken-word-friendly
+   controls (a laptop reveal can be coached blind over the phone) */
+const FINE = matchMedia('(pointer: fine)').matches;
+if(FINE) hint.textContent='Click a light to visit its story · drag to look around · + / − to zoom';
 document.getElementById('enter').addEventListener('click',()=>{
   fflEnterEvent();
   ensureCtx(); intro.classList.add('gone'); hint.classList.add('on');
-  layersEl.classList.add('on');
+  layersEl.classList.add('on'); navEl.classList.add('on');
   setTimeout(()=>openStory('center'), reduced?0:900);
-  setTimeout(()=>hint.classList.remove('on'), 10000);
+  setTimeout(()=>hint.classList.remove('on'), FINE?14000:10000);
+});
+document.getElementById('zin').addEventListener('click',ev=>{ ev.stopPropagation();
+  cam.tz=clampZ(cam.tz*1.3); });
+document.getElementById('zout').addEventListener('click',ev=>{ ev.stopPropagation();
+  cam.tz=clampZ(cam.tz/1.3); });
+document.getElementById('zhome').addEventListener('click',ev=>{ ev.stopPropagation();
+  flyTo(0,0,1); });
+addEventListener('keydown',e=>{
+  if(!intro.classList.contains('gone')) return;
+  if(e.key==='Escape'){ if(focus) closeStory(); return; }
+  if(e.key==='+'||e.key==='='){ cam.tz=clampZ(cam.tz*1.2); }
+  else if(e.key==='-'||e.key==='_'){ cam.tz=clampZ(cam.tz/1.2); }
+  else if(e.key.indexOf('Arrow')===0){
+    const s=0.12/cam.z;
+    if(e.key==='ArrowLeft'){cam.tx-=s;} if(e.key==='ArrowRight'){cam.tx+=s;}
+    if(e.key==='ArrowUp'){cam.ty-=s;} if(e.key==='ArrowDown'){cam.ty+=s;}
+    if(focus&&!minimized) minimizeCard();
+    e.preventDefault();
+  }
 });
 
 /* picking */
@@ -491,6 +532,14 @@ cvs.addEventListener('wheel',e=>{ e.preventDefault();
   cam.tz=clampZ(cam.tz*Math.exp(-e.deltaY*0.0012));
   if(focus&&!minimized&&Math.abs(e.deltaY)>4) minimizeCard();
 },{passive:false});
+
+/* hover feedback (fine pointers): cursor + label glow make clickability discoverable */
+let hoverId=null;
+if(FINE){ cvs.style.cursor='grab';
+  cvs.addEventListener('pointermove',e=>{ if(ptrs.size>0){ if(moved) cvs.style.cursor='grabbing'; return; }
+    const h=pick(e.clientX,e.clientY);
+    if(h!==hoverId){ hoverId=h; } cvs.style.cursor=h?'pointer':'grab'; });
+}
 
 /* ---------- render ---------- */
 function nodeDrift(s,t){ if(reduced) return [0,0];
@@ -603,8 +652,8 @@ function draw(t){
     const rr=r*0.5; ctx.beginPath();
     if(ctx.roundRect) ctx.roundRect(-r*0.85,-r*0.85,r*1.7,r*1.7,rr); else ctx.rect(-r*0.85,-r*0.85,r*1.7,r*1.7);
     ctx.fill(); ctx.restore();
-    ctx.font=(active?'600 ':'500 ')+Math.min(17,Math.max(10.5,11.5*pr*cam.z))+'px "Instrument Sans",sans-serif';
-    ctx.textAlign='center'; ctx.fillStyle=active?'rgba(234,242,252,0.95)':'rgba(169,196,232,0.8)';
+    ctx.font=((active||p.id===hoverId)?'600 ':'500 ')+Math.min(17,Math.max(10.5,11.5*pr*cam.z))+'px "Instrument Sans",sans-serif';
+    ctx.textAlign='center'; ctx.fillStyle=(active||p.id===hoverId)?'rgba(234,242,252,0.95)':'rgba(169,196,232,0.8)';
     ctx.fillText(p.label, px, py+r*3+11);
   });
 
@@ -622,8 +671,8 @@ function draw(t){
     ctx.fillStyle= active?'#fff2da':'#ffd9a3';
     ctx.beginPath(); ctx.arc(px,py,r,0,6.283); ctx.fill();
     // label — always on; capped so zooming in never outgrows or hides them
-    ctx.font=(active?'600 ':'500 ')+Math.min(18,Math.max(11,12.5*pr*cam.z))+'px "Instrument Sans",sans-serif';
-    ctx.textAlign='center'; ctx.fillStyle=active?'rgba(239,230,213,0.95)':'rgba(151,160,181,0.85)';
+    ctx.font=((active||s.id===hoverId)?'600 ':'500 ')+Math.min(18,Math.max(11,12.5*pr*cam.z))+'px "Instrument Sans",sans-serif';
+    ctx.textAlign='center'; ctx.fillStyle=(active||s.id===hoverId)?'rgba(239,230,213,0.95)':'rgba(151,160,181,0.85)';
     ctx.fillText(s.title, px, py+r*3.2+12);
   });
 
