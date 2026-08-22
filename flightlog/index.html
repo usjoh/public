@@ -121,6 +121,21 @@
 
 <canvas id="sky"></canvas>
 
+<script>
+/* GoatCounter usage capture — PUBLIC site only. Host-gated: the private
+   artifact copy is CSP-sandboxed (external hosts blocked), so the loader
+   stays silent everywhere except usjoh.github.io. Mulshine pattern. */
+(function(){
+  if(location.hostname!=='usjoh.github.io') return;
+  var s=document.createElement('script');
+  s.setAttribute('data-goatcounter','https://usjoh.goatcounter.com/count');
+  s.async=true; s.src='https://gc.zgo.at/count.js';
+  document.head.appendChild(s);
+})();
+function gcount(path,title){ try{ if(window.goatcounter&&window.goatcounter.count)
+  window.goatcounter.count({path:path,title:title||path,event:true}); }catch(e){} }
+</script>
+
 <div id="intro">
   <div class="eyebrow">The O&#8217;Halloran Family</div>
   <h1>Family <em>Flight&nbsp;Log</em></h1>
@@ -332,6 +347,9 @@ function kinChipsFor(pdata, selfId){
 }
 function openStory(id){
   const s=byId[id]; if(!s) return;
+  if(id==='center') gcount('flightlog-center','Greeting');
+  else if(s.isPerson) gcount('flightlog-person-'+(id==='bill-card'?'bill':id),'Person: '+(s.name||id));
+  else gcount('flightlog-story-'+id,'Story: '+(s.title||id));
   focus=id; minimized=false; mini.classList.remove('on');
   const par=1-(s.pos.d*0.55);
   flyTo(s.pos.x/par, s.pos.y/par + 0.10, s.zoom||(s.isPerson?1.9:2.05));
@@ -382,6 +400,7 @@ document.getElementById('close').addEventListener('click',ev=>{ ev.stopPropagati
 
 /* enter — arrive at Bill himself, card open, greeting playing */
 document.getElementById('enter').addEventListener('click',()=>{
+  gcount('flightlog-enter','Step inside');
   ensureCtx(); intro.classList.add('gone'); hint.classList.add('on');
   layersEl.classList.add('on');
   setTimeout(()=>openStory('center'), reduced?0:900);
@@ -402,6 +421,7 @@ function pick(mx,my){
 /* layer toggle */
 const layersEl=document.getElementById('layers');
 function setLayer(l){
+  gcount('flightlog-layer-'+l,'Layer: '+l);
   LAYER=l;
   layersEl.querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x.dataset.l===l));
   if(focus && !nodeVisible(byId[focus])){ hideAllPanels(); focus=null; flyTo(0,0,1); }
