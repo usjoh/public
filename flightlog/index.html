@@ -134,6 +134,26 @@
 })();
 function gcount(path,title){ try{ if(window.goatcounter&&window.goatcounter.count)
   window.goatcounter.count({path:path,title:title||path,event:true}); }catch(e){} }
+/* Distinct-visitor layer (anchored on Enter, operator design 2026-08-22):
+   - localStorage flag 'ffl-seen' set at first Enter → enter events split
+     first vs return, giving durable distinct-device counts.
+   - Optional named links: …/flightlog/#v=name (or ?v=name) persists an
+     invite tag on the device; enter events carry it as a suffix.
+   Anonymous, first-party, no cookies; tags exist only for links Jeff
+   hands out. Story/person events stay global (cardinality discipline). */
+function fflTag(){ try{
+  var m=(location.hash||'').match(/[#&]v=([a-z0-9-]{1,20})/)
+     ||(location.search||'').match(/[?&]v=([a-z0-9-]{1,20})/);
+  if(m) localStorage.setItem('ffl-v',m[1]);
+  return localStorage.getItem('ffl-v')||'';
+}catch(e){ return ''; } }
+function fflEnterEvent(){ var first=false;
+  try{ first=!localStorage.getItem('ffl-seen');
+       if(first) localStorage.setItem('ffl-seen','1'); }catch(e){}
+  var tag=fflTag();
+  gcount('flightlog-enter-'+(first?'first':'return')+(tag?'-'+tag:''),
+         'Step inside ('+(first?'first visit':'return')+(tag?': '+tag:'')+')');
+}
 </script>
 
 <div id="intro">
@@ -400,7 +420,7 @@ document.getElementById('close').addEventListener('click',ev=>{ ev.stopPropagati
 
 /* enter — arrive at Bill himself, card open, greeting playing */
 document.getElementById('enter').addEventListener('click',()=>{
-  gcount('flightlog-enter','Step inside');
+  fflEnterEvent();
   ensureCtx(); intro.classList.add('gone'); hint.classList.add('on');
   layersEl.classList.add('on');
   setTimeout(()=>openStory('center'), reduced?0:900);
