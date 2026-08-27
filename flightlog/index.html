@@ -254,6 +254,9 @@ const FFL = {"stories": [{"id": "s1", "title": "Don’t Touch the Hot Stove", "e
 "use strict";
 const cvs = document.getElementById('sky'), ctx = cvs.getContext('2d');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Below this rendered font size an unselected label is not worth reading, so it
+// is not drawn. Zooming in raises every font and brings the names back.
+const LBL_MIN = 8.5;
 let W=0,H=0,DPR=1;
 function resize(){ DPR=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight;
   cvs.width=W*DPR; cvs.height=H*DPR; cvs.style.width=W+'px'; cvs.style.height=H+'px';
@@ -719,7 +722,9 @@ function draw(t){
     const [px,py,pr]=project(p.pos.x,p.pos.y,p.pos.d);
     const active = p.id===focus;
     const pt=tier(p.id);
-    const r=Math.max(5.5, ez(p.id, pt===2?26:pt===1?10:7)*pr*cam.z);
+    // Floor was 5.5px, which flattened the whole far field: every person past
+    // d≈0.7 rendered identically. Dropped to 1.8 so distance actually reads.
+    const r=Math.max(1.8, ez(p.id, pt===2?26:pt===1?10:6)*pr*cam.z);
     // glow and label offsets were tuned when r topped out near 13; at selection
     // size they have to stop tracking r linearly or the halo washes the sky and
     // the label drifts a hundred pixels off its own node.
@@ -733,10 +738,22 @@ function draw(t){
     const rr=r*0.5; ctx.beginPath();
     if(ctx.roundRect) ctx.roundRect(-r*0.85,-r*0.85,r*1.7,r*1.7,rr); else ctx.rect(-r*0.85,-r*0.85,r*1.7,r*1.7);
     ctx.fill(); ctx.restore();
-    ctx.font=((active||p.id===hoverId)?'600 ':'500 ')+Math.min(17,Math.max(10.5,11.5*pr*cam.z))+'px "Instrument Sans",sans-serif';
-    ctx.textAlign='center'; ctx.fillStyle=(active||p.id===hoverId)?'rgba(234,242,252,0.95)'
-      :pt===1?'rgba(200,218,240,0.88)':'rgba(169,196,232,0.8)';
-    ctx.fillText(p.label, px, py+r+24);
+    // Label size now TRACKS the node instead of running its own curve with an
+    // 10.5px floor — that floor put full-size text on nodes shrinking past it.
+    // Below legibility a base label simply goes, fading rather than popping;
+    // selected, connected and hovered are always named. This is what keeps the
+    // deep field readable once the 1999 import puts hundreds of stars back there.
+    const fs=r*2.0, keep=(pt>=1)||active||p.id===hoverId;
+    if(keep || fs>LBL_MIN){
+      const fade=keep?1:Math.min(1,(fs-LBL_MIN)/3.5);
+      ctx.font=((active||p.id===hoverId)?'600 ':'500 ')+Math.min(17,Math.max(9,fs))+'px "Instrument Sans",sans-serif';
+      ctx.textAlign='center';
+      ctx.globalAlpha=fade;
+      ctx.fillStyle=(active||p.id===hoverId)?'rgba(234,242,252,0.95)'
+        :pt===1?'rgba(200,218,240,0.88)':'rgba(169,196,232,0.8)';
+      ctx.fillText(p.label, px, py+r+Math.max(13,fs*1.5));
+      ctx.globalAlpha=1;
+    }
   });
 
   // nodes
@@ -746,7 +763,7 @@ function draw(t){
     const active = s.id===focus;
     const hot = s.id===playingId;
     const st=tier(s.id);
-    const r=Math.max(7, ez(s.id, st===2?24:st===1?13:9)*pr*cam.z*(hot?1+level*0.7:1));
+    const r=Math.max(2.2, ez(s.id, st===2?24:st===1?13:7.5)*pr*cam.z*(hot?1+level*0.7:1));
     const gr=Math.min(r*3.6, r+70);
     const h=ctx.createRadialGradient(px,py,0,px,py,gr);
     h.addColorStop(0, hot?'rgba(255,225,180,0.75)':'rgba(255,217,163,0.4)');
@@ -762,10 +779,17 @@ function draw(t){
     } else ctx.fillStyle='#ffd9a3';
     ctx.beginPath(); ctx.arc(px,py,r,0,6.283); ctx.fill();
     // label — always on; capped so zooming in never outgrows or hides them
-    ctx.font=((active||s.id===hoverId)?'600 ':'500 ')+Math.min(18,Math.max(11,12.5*pr*cam.z))+'px "Instrument Sans",sans-serif';
-    ctx.textAlign='center'; ctx.fillStyle=(active||s.id===hoverId)?'rgba(239,230,213,0.95)'
-      :st===1?'rgba(198,189,171,0.9)':'rgba(151,160,181,0.85)';
-    ctx.fillText(s.title, px, py+r+26);
+    const fs=r*1.6, keep=(st>=1)||active||s.id===hoverId||hot;
+    if(keep || fs>LBL_MIN){
+      const fade=keep?1:Math.min(1,(fs-LBL_MIN)/3.5);
+      ctx.font=((active||s.id===hoverId)?'600 ':'500 ')+Math.min(18,Math.max(9,fs))+'px "Instrument Sans",sans-serif';
+      ctx.textAlign='center';
+      ctx.globalAlpha=fade;
+      ctx.fillStyle=(active||s.id===hoverId)?'rgba(239,230,213,0.95)'
+        :st===1?'rgba(198,189,171,0.9)':'rgba(151,160,181,0.85)';
+      ctx.fillText(s.title, px, py+r+Math.max(14,fs*1.5));
+      ctx.globalAlpha=1;
+    }
   });
 
   requestAnimationFrame(draw);
