@@ -320,16 +320,16 @@ const threads = [];
   })); }
 
 /* ---------- focus-scaled sizing (operator, 2026-08-27) ----------
-   Before this, size had two states (active / not) and the centre orb had a
-   hard floor that ignored focus entirely — so Bill stayed the largest object
-   in the sky no matter what you were looking at, which read as noise while
-   navigating. Size now scales with focus in three tiers:
-     2 selected   — the largest thing in the sky
+   The sky outgrew Bill. He is the entry point, not the permanent centre, so
+   size is a function of FOCUS rather than of identity:
+     2 selected   — whatever you picked becomes the sun, at the size the orb
+                    holds when it is itself the subject. Every node is treated
+                    as equally valuable to the story the connections tell.
      1 connected  — anything a thread reaches from the selection (= the old
                     "selected" size, so the previous look survives one tier down)
-     0 everything else
-   With nothing selected the sky renders exactly as it did before: base nodes,
-   full orb. The tiering only engages once you pick something. */
+     0 everything else — including the orb, which gets no exemption
+   Nothing selected is its own case: the orb returns to full size as the
+   entry anchor, and the wide view reads exactly as it always has. */
 const adj={};
 { const link=(a,b)=>{ if(!a||!b||a===b) return;
     (adj[a]=adj[a]||new Set()).add(b); (adj[b]=adj[b]||new Set()).add(a); };
@@ -658,7 +658,10 @@ function draw(t){
   const pulse = 1 + level*0.9 + (reduced?0:Math.sin(t*0.0012)*0.045);
   const [ox,oy]=project(0,0,0.42);
   const oTier=tier('center');
-  const oSize=ez('center', oTier===2||oTier===-1 ? 34 : oTier===1 ? 21 : 15);
+  // Bill is a node like any other once something else is the subject: medium if
+  // the selection reaches him, small if it does not. He keeps full size only as
+  // the entry anchor (nothing selected) and when he is himself the selection.
+  const oSize=ez('center', oTier===2||oTier===-1 ? 34 : oTier===1 ? 9 : 6.5);
   const orbR=Math.max(oSize*0.77, oSize*cam.z)*pulse;
   orbDrawR=orbR;
   const halo=ctx.createRadialGradient(ox,oy,0,ox,oy,orbR*4.2);
@@ -733,11 +736,15 @@ function draw(t){
     const [px,py,pr]=project(p.pos.x,p.pos.y,p.pos.d);
     const active = p.id===focus;
     const pt=tier(p.id);
-    const r=Math.max(5.5, ez(p.id, pt===2?13:pt===1?10:7)*pr*cam.z);
-    const h=ctx.createRadialGradient(px,py,0,px,py,r*3.2);
+    const r=Math.max(5.5, ez(p.id, pt===2?26:pt===1?10:7)*pr*cam.z);
+    // glow and label offsets were tuned when r topped out near 13; at selection
+    // size they have to stop tracking r linearly or the halo washes the sky and
+    // the label drifts a hundred pixels off its own node.
+    const gr=Math.min(r*3.2, r+62);
+    const h=ctx.createRadialGradient(px,py,0,px,py,gr);
     h.addColorStop(0, active?'rgba(226,238,252,0.6)':'rgba(169,196,232,0.30)');
     h.addColorStop(1,'rgba(169,196,232,0)');
-    ctx.fillStyle=h; ctx.beginPath(); ctx.arc(px,py,r*3.2,0,6.283); ctx.fill();
+    ctx.fillStyle=h; ctx.beginPath(); ctx.arc(px,py,gr,0,6.283); ctx.fill();
     ctx.save(); ctx.translate(px,py); ctx.rotate(Math.PI/4);   // soft diamond
     ctx.fillStyle=active?'#eaf2fc':'#cfe0f5';
     const rr=r*0.5; ctx.beginPath();
@@ -746,7 +753,7 @@ function draw(t){
     ctx.font=((active||p.id===hoverId)?'600 ':'500 ')+Math.min(17,Math.max(10.5,11.5*pr*cam.z))+'px "Instrument Sans",sans-serif';
     ctx.textAlign='center'; ctx.fillStyle=(active||p.id===hoverId)?'rgba(234,242,252,0.95)'
       :pt===1?'rgba(200,218,240,0.88)':'rgba(169,196,232,0.8)';
-    ctx.fillText(p.label, px, py+r*3+11);
+    ctx.fillText(p.label, px, py+r+24);
   });
 
   // nodes
@@ -756,18 +763,19 @@ function draw(t){
     const active = s.id===focus;
     const hot = s.id===playingId;
     const st=tier(s.id);
-    const r=Math.max(7, ez(s.id, st===2?17:st===1?13:9)*pr*cam.z*(hot?1+level*0.7:1));
-    const h=ctx.createRadialGradient(px,py,0,px,py,r*3.6);
+    const r=Math.max(7, ez(s.id, st===2?24:st===1?13:9)*pr*cam.z*(hot?1+level*0.7:1));
+    const gr=Math.min(r*3.6, r+70);
+    const h=ctx.createRadialGradient(px,py,0,px,py,gr);
     h.addColorStop(0, hot?'rgba(255,225,180,0.75)':'rgba(255,217,163,0.4)');
     h.addColorStop(1,'rgba(245,181,103,0)');
-    ctx.fillStyle=h; ctx.beginPath(); ctx.arc(px,py,r*3.6,0,6.283); ctx.fill();
+    ctx.fillStyle=h; ctx.beginPath(); ctx.arc(px,py,gr,0,6.283); ctx.fill();
     ctx.fillStyle= active?'#fff2da':'#ffd9a3';
     ctx.beginPath(); ctx.arc(px,py,r,0,6.283); ctx.fill();
     // label — always on; capped so zooming in never outgrows or hides them
     ctx.font=((active||s.id===hoverId)?'600 ':'500 ')+Math.min(18,Math.max(11,12.5*pr*cam.z))+'px "Instrument Sans",sans-serif';
     ctx.textAlign='center'; ctx.fillStyle=(active||s.id===hoverId)?'rgba(239,230,213,0.95)'
       :st===1?'rgba(198,189,171,0.9)':'rgba(151,160,181,0.85)';
-    ctx.fillText(s.title, px, py+r*3.2+12);
+    ctx.fillText(s.title, px, py+r+26);
   });
 
   requestAnimationFrame(draw);
