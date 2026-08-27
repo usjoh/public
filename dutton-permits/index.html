@@ -201,6 +201,7 @@ footer ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:9px;
   <div class="cite">
     <span id="count"></span>
     <button class="btn" id="copy">Copy this view as a citation</button>
+    <button class="btn" id="csv">Download this view (CSV)</button>
     <button class="btn" id="reset">Reset</button>
   </div>
 </div>
@@ -230,7 +231,7 @@ footer ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:9px;
     <li><b>Units.</b> 81 records carry no unit in the Location field, mostly parcel-wide and common-area work. They appear under &ldquo;no unit&rdquo; rather than being dropped.</li>
   </ul>
   <div class="caveat" style="border-left-color:var(--accent)">
-    <b>Owner names.</b> This page is public, so the names of private individuals have been withheld and appear as <i>Private owner</i>. Company, trust and institutional owners are shown as the City recorded them, since the developer&rsquo;s filing record is the point of the page. Nothing else is altered: every application, status, date, unit and declared value is exactly as released. The unredacted file is the City&rsquo;s own public record, available on request from the Division of Development Services.
+    <b>Owner names.</b> This page is public, so the names of private individuals have been withheld and appear as <i>Private owner</i>. Company, trust and institutional owners are shown as the City recorded them, since the developer&rsquo;s filing record is the point of the page. Nothing else is altered: every application, status, date, unit and declared value is exactly as released. The CSV export carries the same redaction. The unredacted file is the City&rsquo;s own public record, available on request from the Division of Development Services.
   </div>
   <div class="caveat">
     <b>Two limits worth stating.</b> The list is current as of the City&rsquo;s 25 August 2026 pull, so anything filed since will not appear. And it records what was <i>filed</i>, not what was <i>inspected</i>: the inspection history behind the 85 unclosed applications has been requested from the City and is not yet in hand. Whether that work was inspected and simply never closed out, or never inspected at all, is not answerable from this data.
@@ -352,6 +353,31 @@ $("#copy").onclick=()=>{
     setTimeout(()=>b.textContent=o,1600);
   }).catch(()=>{});
 };
+$("#csv").onclick=()=>{
+  const rows=DATA.filter(matches).sort((a,b)=>{
+    let x=a[sortKey], y=b[sortKey];
+    if(sortKey==="cost"){ x=+x; y=+y; } else { x=(x||"").toString().toLowerCase(); y=(y||"").toString().toLowerCase(); }
+    return x<y?-sortDir : x>y?sortDir : 0;
+  });
+  const cols=[["ref","Application reference"],["pno","Permit number"],["recv","Received"],["end","Actual end date"],
+    ["unit","Unit"],["loc","Location"],["parcel","Parcel ID"],["own","Owner"],["con","Contractor"],
+    ["act","Activity"],["d1","Description 1"],["d2","Description 2"],["app","Application status"],
+    ["usr","User status"],["cost","Estimated cost"]];
+  const q=v=>{ const s=(v===null||v===undefined)?"":String(v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const lines=[cols.map(c=>q(c[1])).join(",")];
+  rows.forEach(r=>lines.push(cols.map(c=>q(r[c[0]])).join(",")));
+  lines.push("");
+  lines.push(q("Source: City of Lowell Division of Development Services, released 25 August 2026 in response to a public records request, searched by street address, all units. Names of private individual owners and contractors are withheld on this export; entity names are as the City recorded them."));
+  const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="491-dutton-permits-"+rows.length+"-of-353.csv";
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+  const b=$("#csv"); const o=b.textContent; b.textContent="Downloaded";
+  setTimeout(()=>b.textContent=o,1600);
+};
+
 render();
 
 /* ---------- GoatCounter ---------- */
@@ -373,6 +399,7 @@ let qt;
 $("#q").addEventListener("input",()=>{ clearTimeout(qt); qt=setTimeout(()=>{ if($("#q").value.trim()) trackOnce("search"); },1200); });
 $("#tb").addEventListener("click",e=>{ if(e.target.closest("tr.rec")) trackOnce("row-expand"); });
 $("#copy").addEventListener("click",()=>track("citation-copy"));
+$("#csv").addEventListener("click",()=>track("csv-download"));
 document.querySelectorAll("th").forEach(th=>th.addEventListener("click",()=>trackOnce("sort/"+th.dataset.s)));
 </script>
 <script data-goatcounter="https://usjoh.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
