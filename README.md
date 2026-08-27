@@ -19,6 +19,7 @@ Each artifact is a top-level subdirectory served at its own subpath:
 | `escher/` | `/public/escher/` | The Wonder World of M.C. Escher — interactive kid-friendly tour |
 | `disney-trip-alerts/` | `/public/disney-trip-alerts/` | Privacy policy + SMS terms for the family trip board's text alerts (on file with the carrier registration) |
 | `fathers-day-with-dad/` | `/public/fathers-day-with-dad/` | Father's Day photo gallery |
+| `dutton-permits/` | `/public/dutton-permits/` | 491 Dutton Street permit record — the City of Lowell's public-records release, searchable. Owner names of private individuals withheld; `noindex` |
 
 Add a new artifact by dropping its directory at the repo root and adding a row above plus a link in `index.html`.
 
