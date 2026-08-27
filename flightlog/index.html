@@ -263,7 +263,8 @@ addEventListener('resize', resize); resize();
 /* ---------- world ---------- */
 const stories = FFL.stories;
 const CENTER = {
-  id:'center', title:'William F. O’Halloran', era:'b. 1942, Rome NY · where the sky begins',
+  id:'center', title:'The Important Thing',
+  era:'William F. O’Halloran Jr. · b. 1942, Rome NY',
   summary:'Bill’s memories are the largest constellation here, and the easiest place to begin — recorded by Brian at the farmhouse on NY‑276 and in Pennsylvania, 2021–2022. They aren’t the only voices: Benny’s tape from 1970, a table in 2023, Elmas in 2020 and 2025. The books behind all of it are his too — the Bullis and O’Halloran lines traced back to the 1400s and written down in 1999, some five hundred names, most of them still waiting for a light. Tap any light to travel to its story.',
   quote:'No matter what else happens — the important thing is to know that your parents loved you.',
   pos:{x:0,y:0,d:0.42}, img:'bill-mit', audioKey:'greet', zoom:1.55,
@@ -467,14 +468,18 @@ function kinChipsFor(pdata, selfId){
   (pdata.kin||[]).forEach(k=>addChip(chipId(k.to), k.label||(k.type==='spouse'?'married':k.type), true));
   (childrenOf[selfId]||[]).forEach(cid=>addChip(chipId(cid),'child',true));
 }
-function openStory(id){
+function openStory(id, browse){
   const s=byId[id]; if(!s) return;
   if(id==='center') gcount('flightlog-center','Greeting');
   else if(s.isPerson) gcount('flightlog-person-'+(id==='bill-card'?'bill':id),'Person: '+(s.name||id));
   else gcount('flightlog-story-'+id,'Story: '+(s.title||id));
-  focus=id; minimized=false; mini.classList.remove('on');
+  focus=id;
+  if(!browse){ minimized=false; mini.classList.remove('on'); }
   const par=1-(s.pos.d*0.55);
-  flyTo(s.pos.x/par, s.pos.y/par + 0.10, s.zoom||(s.isPerson?1.9:2.05));
+  // Browsing keeps the reader's own zoom and centres the node properly; the
+  // +0.10 lift only exists to clear the open card, which is not open here.
+  flyTo(s.pos.x/par, s.pos.y/par + (browse?0:0.10),
+        browse ? cam.tz : (s.zoom||(s.isPerson?1.9:2.05)));
   const row=document.querySelector('#card .row');
   title.textContent=nodeTitle(s);
   chips.innerHTML='';
@@ -497,12 +502,18 @@ function openStory(id){
   setGive(s,id);
   if(s.img && FFL.images[s.img]){ pic.src=FFL.images[s.img]; pic.alt=nodeTitle(s); pic.classList.add('show'); }
   else pic.classList.remove('show');
-  card.classList.add('open'); navEl.classList.add('hide');
-  if(playingId&&byId[playingId]) mtt.textContent=nodeTitle(byId[playingId]);
+  if(browse){
+    // stay in the pill: it re-labels to whatever you just stepped to
+    mini.classList.add('on'); mtt.textContent=nodeTitle(s);
+  } else {
+    card.classList.add('open'); navEl.classList.add('hide');
+    if(playingId&&byId[playingId]) mtt.textContent=nodeTitle(byId[playingId]);
+  }
 }
-function travel(id){ // fluid: glide down the thread
+function travel(id, browse){ // fluid: glide down the thread
   const n=byId[id];
   if(n && !nodeVisible(n)) setLayer('both');   // never fly to an invisible light
+  if(browse){ openStory(id, true); return; }   // no card to sweep away — go straight there
   hideAllPanels();
   setTimeout(()=>openStory(id), reduced?0:420);
 }
@@ -613,7 +624,11 @@ function endPtr(e){
   if(wasTap){
     let id=pick(e.clientX,e.clientY);
     if(id==='center' && LAYER==='family') id='bill-card';   // in the Family layer the orb IS Bill's family card
-    if(id){ if(id!==focus) travel(id); else if(minimized) expandCard(); }
+    // Minimised is BROWSE mode: a tap steps to the next node, re-labels the
+    // pill and glides there at the reader's current zoom, so exploring the sky
+    // never forces you back through a full card. Maximised keeps today's
+    // behaviour — a tap opens the next card.
+    if(id){ if(id!==focus) travel(id, minimized); else if(minimized) expandCard(); }
     else if(focus&&!minimized) minimizeCard();
   }
   if(ptrs.size<2) pinchD0=0;
