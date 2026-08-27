@@ -556,8 +556,13 @@ addEventListener('keydown',e=>{
 /* picking */
 function pick(mx,my){
   let best=null,bd=1e9;
+  // Stories DRIFT: they are drawn at pos+nodeDrift but were hit-tested at bare
+  // pos, so the clickable target sat up to ~17px away from the visible star and
+  // wandered continuously. Pick where the eye sees it, not where the data says.
+  const nowT=performance.now();
   pickList.forEach(s=>{ if(!nodeVisible(s)) return;
-    const [px,py,pr]=project(s.pos.x,s.pos.y,s.pos.d);
+    const dr = s.isPerson||s.id==='center' ? [0,0] : nodeDrift(s,nowT);
+    const [px,py,pr]=project(s.pos.x+dr[0],s.pos.y+dr[1],s.pos.d);
     // orb target tracks its drawn radius so a shrunken Bill stops swallowing
     // clicks aimed at empty sky near the centre
     const r=s.id==='center'?Math.max(22,orbDrawR*1.2):Math.max(26,30*pr*cam.z);
