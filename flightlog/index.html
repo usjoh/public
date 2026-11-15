@@ -144,6 +144,68 @@
   #minifill{height:100%;width:0%;background:linear-gradient(90deg,var(--ember),var(--glow))}
   #mini .exp{flex:0 0 auto;color:var(--faint);font-size:15px;padding:0 2px}
 
+  /* ---------- focus view: trail + hints (2026-11, "start from yourself") ---------- */
+  #trail{position:fixed;top:max(12px, env(safe-area-inset-top));left:12px;right:250px;z-index:10;
+         display:flex;align-items:center;gap:2px;flex-wrap:nowrap;overflow:hidden;
+         opacity:0;pointer-events:none;transition:opacity .8s ease .6s}
+  #trail.on{opacity:1;pointer-events:auto}
+  #trail button{flex:0 1 auto;min-width:3.5em;max-width:15em;cursor:pointer;border-radius:999px;
+         border:1px solid rgba(151,160,181,.16);background:rgba(12,18,32,.78);color:var(--dim);
+         padding:8px 13px;font:500 13px/1.15 "Instrument Sans",sans-serif;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .25s;
+         backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #trail button:hover{color:var(--ink);border-color:rgba(245,181,103,.45)}
+  #trail button.cur{color:var(--ink);border-color:rgba(245,181,103,.5);box-shadow:0 0 14px rgba(245,181,103,.16)}
+  #trail button.home{flex:0 0 auto;min-width:0;color:var(--moon)}
+  #trail .sep{flex:0 0 auto;color:var(--faint);padding:0 2px;font-size:15px}
+  #card .hints{margin-top:12px;display:flex;flex-direction:column;gap:5px}
+  #card .hints div{font-size:13px;line-height:1.4;color:var(--moon)}
+  #card .hints div::before{content:"\2726\00a0\00a0";color:var(--ember)}
+  #card{overscroll-behavior:contain;touch-action:pan-y}
+  #card .top{padding-right:78px}   /* keep the era line clear of ⌄ and ✕ */
+  #card .hints div.go{cursor:pointer;color:var(--moonglow);text-decoration:underline;
+         text-decoration-color:rgba(169,196,232,.4);text-underline-offset:3px}
+  #card .hints div.go:hover{text-decoration-color:var(--moonglow)}
+
+  /* phones / tablets: the card is a bottom sheet that never takes more than
+     ~58% of the screen, so the neighbourhood above it always has room */
+  @media (max-width:899px){
+    #trail{top:calc(max(12px, env(safe-area-inset-top)) + 46px);right:12px}
+    #hint{top:auto;bottom:calc(31vh + 14px);white-space:normal;width:calc(100% - 32px);text-align:center}
+    #card{max-height:31vh;overflow-y:auto;transition:transform .55s cubic-bezier(.22,.9,.24,1), max-height .4s ease;
+          padding-top:26px}
+    #card.full{max-height:76vh}
+    #grab{display:block}
+  }
+  #grab{display:none;position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:24px;
+        border:0;background:transparent;cursor:pointer}
+  #grab::before{content:"";position:absolute;left:50%;top:9px;width:44px;height:5px;margin-left:-22px;
+        border-radius:3px;background:rgba(151,160,181,.4)}
+  /* laptops and the TV: the card docks on the right instead of covering the
+     lower half of the sky, so the family stays in view while you read */
+  @media (min-width:900px){
+    #card{left:auto;right:16px;bottom:16px;width:min(520px,36vw);max-height:calc(100% - 92px);
+          overflow-y:auto;border-radius:20px;border-bottom:1px solid var(--line);
+          padding-bottom:20px;transform:translateX(calc(100% + 40px))}
+    #card.open{transform:none}
+  }
+  /* big screens are usually a room away: everything a size up */
+  @media (min-width:1100px){
+    #trail button{font-size:16px;padding:10px 16px}
+    #layers button{font-size:13px;padding:10px 15px}
+    #nav button{width:52px;height:52px;font-size:22px}
+    #hint{font-size:14px}
+    #card .era{font-size:12.5px}
+    #card h2{font-size:34px}
+    #card .sum{font-size:17.5px}
+    #card blockquote{font-size:19px}
+    #card .threads .lbl{font-size:12.5px}
+    #card .hints div{font-size:16px}
+    .chip,.chip .via,#giveBtn,#givePanel a{font-size:15px}
+    #giveCopy{font-size:15px}
+    #mini .mtt{font-size:15px}
+  }
+
   @media (prefers-reduced-motion: reduce){
     #card{transition:none} #intro{transition:opacity .3s}
   }
@@ -196,6 +258,8 @@ function fflEnterEvent(){ var first=false;
 
 <div id="hint">Tap a light to travel to its story</div>
 
+<nav id="trail" aria-label="Where you have been"></nav>
+
 <div id="layers">
   <button data-l="stories" class="amber">Stories</button>
   <button data-l="family">Family</button>
@@ -218,6 +282,7 @@ function fflEnterEvent(){ var first=false;
 </div>
 
 <div id="card">
+  <button id="grab" aria-label="Show the whole card"></button>
   <button id="minb" aria-label="Minimize and explore the map">&#8964;</button>
   <button id="close" aria-label="Close">&#10005;</button>
   <div class="top">
@@ -228,6 +293,7 @@ function fflEnterEvent(){ var first=false;
     </div>
   </div>
   <p class="sum" id="sum"></p>
+  <div class="hints" id="hints"></div>
   <blockquote id="quote"></blockquote>
   <div class="row">
     <button id="play" aria-label="Play story">
@@ -297,6 +363,81 @@ const childrenOf={}; personsAll.forEach(p=>p.kin.filter(k=>k.type==='parent').fo
   (childrenOf[k.to]=childrenOf[k.to]||[]).push(p.id); }));
 
 const pickList = stories.concat(persons);
+
+/* ---------- focus view: "start from yourself" (2026-11) ----------
+   The whole sky at once is 299 names and 18 stories on top of each other, so
+   nobody could read it. Now a visitor starts at one person (their own #v=name
+   link, else Bill). Only that person's own neighbourhood is gathered and named:
+   parents above, partners and siblings beside, children below, their stories
+   in the side columns. Everyone else stays in the sky, faint and unnamed.
+   Tapping any light makes it the new centre. The neighbourhood is laid out in
+   SCREEN space with measured label widths, so its names cannot overlap. The
+   world positions only decide where a light flies in from and back to. */
+const kinMap={parents:{},children:{},spouses:{},siblings:{}};
+{ const km=(m,a,b)=>{ (m[a]=m[a]||new Set()).add(b); };
+  personsAll.forEach(p=>p.kin.forEach(k=>{ if(!byId[k.to]) return;
+    if(k.type==='parent'){ km(kinMap.parents,p.id,k.to); km(kinMap.children,k.to,p.id); }
+    else if(k.type==='spouse'){ km(kinMap.spouses,p.id,k.to); km(kinMap.spouses,k.to,p.id); }
+    else if(k.type==='sibling'){ km(kinMap.siblings,p.id,k.to); km(kinMap.siblings,k.to,p.id); } }));
+  // brothers and sisters through a shared parent, even where the data never
+  // wrote a sibling edge
+  Object.values(kinMap.children).forEach(set=>{ const a=[...set];
+    a.forEach(x=>a.forEach(y=>{ if(x!==y) km(kinMap.siblings,x,y); })); }); }
+const setOf=(m,id)=>[...(m[id]||[])];
+// a person's stories: the ones they appear in, plus the ones told in their voice
+function storiesOfPerson(id){ const p=byId[id], out=new Set((p&&p.stories)||[]);
+  stories.forEach(s=>{ if((s.voice||'bill')===id) out.add(s.id); });
+  return [...out].filter(x=>byId[x]&&!byId[x].isPerson); }
+function peopleOfStory(id){ const s=byId[id], out=new Set();
+  const v=s.voice||'bill'; if(byId[v]&&byId[v].isPerson) out.add(v);
+  persons.forEach(p=>{ if((p.stories||[]).includes(id)) out.add(p.id); });
+  return [...out]; }
+function neighborhood(id){
+  const n=byId[id], seen=new Set([id]), g={up:[],mid:[],sib:[],down:[],side:[]};
+  const add=(arr,x)=>{ const o=byId[x]; if(o&&!seen.has(x)&&nodeVisible(o)){ seen.add(x); arr.push(x); } };
+  if(!n) return g;
+  if(n.isPerson){
+    setOf(kinMap.parents,id).forEach(x=>add(g.up,x));
+    setOf(kinMap.spouses,id).forEach(x=>add(g.mid,x));
+    setOf(kinMap.siblings,id).forEach(x=>add(g.sib,x));
+    setOf(kinMap.children,id).forEach(x=>add(g.down,x));
+    storiesOfPerson(id).forEach(x=>add(g.side,x));
+  } else {
+    peopleOfStory(id).forEach(x=>add(g.up,x));
+    threads.forEach(th=>{ if(th.a===id) add(g.side,th.b); else if(th.b===id) add(g.side,th.a); });
+  }
+  return g;
+}
+// where to start: the visitor's own #v=name link when it names someone in the
+// family, else Bill. Only the CURRENT link counts (not the tag remembered on the
+// device), so testing someone's link on Jeff's laptop never changes its start.
+function startId(){
+  const m=(location.hash||'').match(/[#&]v=([a-z0-9-]{1,20})/)
+        ||(location.search||'').match(/[?&]v=([a-z0-9-]{1,20})/);
+  const v=m?m[1]:'';
+  if(v){
+    if(byId[v]&&byId[v].isPerson) return v;
+    const hit=persons.find(p=>{ const first=(p.label||p.name).toLowerCase().split(/\s+/)[0];
+      const nick=((p.name.match(/\(([^)]*)\)/)||[])[1]||'').toLowerCase().split(/[\s\/]+/);
+      return first===v || nick.includes(v); });
+    if(hit) return hit.id;
+  }
+  return 'bill';
+}
+// which lights this device has opened, so cards can point at what is still new
+const heard=new Set();
+try{ JSON.parse(localStorage.getItem('ffl-heard')||'[]').forEach(x=>heard.add(x)); }catch(e){}
+function markHeard(id){ heard.add(id); try{ localStorage.setItem('ffl-heard',JSON.stringify([...heard])); }catch(e){} }
+// the trail of people and stories visited; going back to one trims the rest
+let trail=[];
+function pushTrail(id){ const i=trail.indexOf(id); if(i>=0) trail=trail.slice(0,i+1); else trail.push(id); }
+function shortName(id){ const n=byId[id]; if(!n) return id;
+  if(!n.isPerson) return n.title;
+  const nick=(n.name.match(/\(([^)]*)\)/)||[])[1];
+  // a nickname, but never a relationship word: "Grandma" is only Jeff's grandma
+  const nk=nick&&nick.split('/')[0].trim();
+  if(nk && !/^(n[ée]e|grand|great|uncle|aunt|dad|mom|mother|father|cousin)/i.test(nk)) return nk;
+  return (n.label||n.name).split(/\s+/)[0]; }
 
 /* layer visibility */
 let LAYER='both';
@@ -411,7 +552,10 @@ function sampleLevel(){ if(analyser&&audioEl&&!audioEl.paused){
   } else level*=0.92; }
 
 /* ---------- state ---------- */
-let focus=null;      // story id or null (wide view)
+let focus=null;      // the light at the centre, or null for the whole sky
+let wheelOut=0;      // accumulated zoom-out inside a neighbourhood
+const FOCUS_ZOOM=1.5;
+const dockMQ=matchMedia('(min-width: 900px)'), DOCK=()=>dockMQ.matches;
 let t0=performance.now();
 
 const intro=document.getElementById('intro'), hint=document.getElementById('hint'),
@@ -458,7 +602,7 @@ function minimizeCard(){ if(!focus||minimized) return; minimized=true;
   card.classList.remove('open'); navEl.classList.remove('hide');
   if(audioEl && playingId && byId[playingId]){ mtt.textContent=byId[playingId].title||byId[playingId].name;
     mini.classList.add('on'); } }
-function expandCard(){ if(!focus) return; minimized=false;
+function expandCard(){ if(!focus){ if(playingId&&byId[playingId]) travel(playingId); return; } minimized=false;
   mini.classList.remove('on'); card.classList.add('open'); navEl.classList.add('hide'); }
 function hideAllPanels(){ minimized=false; card.classList.remove('open'); mini.classList.remove('on');
   navEl.classList.remove('hide'); }
@@ -488,12 +632,13 @@ function openStory(id, browse){
   if(id==='center') gcount('flightlog-center','Greeting');
   else if(s.isPerson) gcount('flightlog-person-'+id,'Person: '+(s.name||id));
   else gcount('flightlog-story-'+id,'Story: '+(s.title||id));
-  focus=id;
+  focus=id; wheelOut=0;
   if(!browse){ minimized=false; mini.classList.remove('on'); }
-  // Browsing keeps the reader's own zoom and centres the node properly; the
-  // +0.10 lift only exists to clear the open card, which is not open here.
-  flyTo(s.pos.x, s.pos.y + (browse?0:0.10)*(0.72+0.9*s.pos.d), s.pos.d*DZ,
-        browse ? cam.tzoom : (s.zoom||(s.isPerson?1.9:2.05)));
+  // The camera only moves the faint sky behind the neighbourhood now (the
+  // neighbourhood itself is placed on screen), so it just centres the light.
+  flyTo(s.pos.x, s.pos.y, s.pos.d*DZ, FOCUS_ZOOM); levelSky();
+  markHeard(id); renderTrail(); renderHints(id);
+  card.classList.remove('full'); card.scrollTop=0;
   const row=document.querySelector('#card .row');
   title.textContent=nodeTitle(s);
   chips.innerHTML='';
@@ -523,15 +668,81 @@ function openStory(id, browse){
     if(playingId&&byId[playingId]) mtt.textContent=nodeTitle(byId[playingId]);
   }
 }
-function travel(id, browse){ // fluid: glide down the thread
-  const n=byId[id];
-  if(n && !nodeVisible(n)) setLayer('both');   // never fly to an invisible light
-  if(browse){ openStory(id, true); return; }   // no card to sweep away — go straight there
-  hideAllPanels();
-  setTimeout(()=>openStory(id), reduced?0:420);
+function travel(id, browse){ // fluid: the sky re-gathers around the new centre
+  const n=byId[id]; if(!n) return;
+  if(!nodeVisible(n)) setLayer('both');        // never fly to an invisible light
+  pushTrail(id);
+  // The card swaps in place rather than sliding out and back: with the
+  // neighbourhood laid out around the card, a slide would reflow it twice.
+  openStory(id, !!browse);
 }
-function closeStory(){ focus=null; playingId=null; stopClip(); syncPlayUI();
-  hideAllPanels(); flyTo(0,0,0,1); levelSky(); }
+// ✕ on the card: put the card away but stay where you are
+function closeStory(){ playingId=null; stopClip(); syncPlayUI(); hideAllPanels(); }
+// the whole sky: still there, just no longer where you start
+function showWholeSky(){
+  if(focus) gcount('flightlog-wholesky','Whole sky');
+  focus=null; wheelOut=0; minimized=false;
+  card.classList.remove('open'); navEl.classList.remove('hide');
+  if(audioEl&&!audioEl.paused&&playingId&&byId[playingId]){
+    mtt.textContent=nodeTitle(byId[playingId]); mini.classList.add('on'); }
+  else mini.classList.remove('on');
+  flyTo(0,0,0,1); levelSky(); renderTrail(); }
+
+const trailEl=document.getElementById('trail'), hintsEl=document.getElementById('hints');
+function renderTrail(){
+  trailEl.innerHTML='';
+  const btn=(txt,cls,fn)=>{ const b=document.createElement('button'); b.className=cls; b.textContent=txt;
+    b.title=txt; b.addEventListener('click',ev=>{ ev.stopPropagation(); fn(); }); trailEl.appendChild(b); };
+  const sep=t=>{ const s=document.createElement('span'); s.className='sep'; s.textContent=t; trailEl.appendChild(s); };
+  btn('✦ Whole sky','home'+(focus?'':' cur'),showWholeSky);
+  const MAX=matchMedia('(max-width:899px)').matches?3:5, start=Math.max(0,trail.length-MAX);
+  if(start>0) sep(' …');
+  trail.slice(start).forEach(id=>{ sep('›');
+    btn(shortName(id), id===focus?'cur':'', ()=>{ if(id!==focus) travel(id, minimized&&!DOCK()); else expandCard(); }); });
+}
+// shortest family path from a person to anyone who has a story (for people
+// like Holly, whose whole neighbourhood is still quiet)
+function pathToStory(id){
+  const prev={[id]:null}, q=[id];
+  while(q.length){ const x=q.shift();
+    if(x!==id && storiesOfPerson(x).length){ const path=[]; for(let y=x;y!=null;y=prev[y]) path.unshift(y); return path; }
+    ['parents','spouses','siblings','children'].forEach(k=>setOf(kinMap[k],x).forEach(y=>{
+      if(!(y in prev)){ prev[y]=x; q.push(y); } })); }
+  return null; }
+// small pointers to what this visitor has not found yet
+function renderHints(id){
+  const n=byId[id], g=neighborhood(id), out=[];
+  const plural=(k,one,many)=>k+' '+(k===1?one:many);
+  if(n.isPerson){
+    const st=storiesOfPerson(id), un=st.filter(x=>!heard.has(x)).length;
+    const first=shortName(id);
+    if(st.length) out.push('Appears in '+plural(st.length,'story','stories')
+      +(un&&un<st.length ? ' — '+un+' you haven’t heard yet' : ''));
+    else out.push('No story about '+first+' yet. If you have one, it belongs here (✎ below).');
+    const fam=g.up.concat(g.mid,g.sib,g.down);
+    if(!st.length){ const path=pathToStory(id);
+      if(path&&path.length>=2){ const mid=path.slice(1,-1).map(shortName);
+        out.push({txt:'The nearest stories are with '+shortName(path[path.length-1])
+                      +(mid.length?', through '+mid.join(' \u2192 '):''), go:path[1]}); } }
+    const quiet=fam.filter(x=>!storiesOfPerson(x).length).length;
+    if(quiet&&fam.length) out.push(quiet===fam.length
+      ? 'Nobody around '+first+' has a story yet'
+      : plural(quiet,'person','people')+' here '+(quiet===1?'has':'have')+' no story yet');
+    const unseen=fam.filter(x=>!heard.has(x)).length;
+    if(unseen&&unseen<fam.length) out.push(plural(unseen,'relative','relatives')+' here you haven’t visited');
+  } else {
+    if(g.up.length) out.push(plural(g.up.length,'person','people')+' in this story');
+    const un=g.side.filter(x=>!heard.has(x)).length;
+    if(g.side.length) out.push('Leads to '+plural(g.side.length,'more story','more stories')
+      +(un&&un<g.side.length ? ' — '+un+' not heard yet' : ''));
+  }
+  hintsEl.innerHTML='';
+  out.forEach(t=>{ const d=document.createElement('div');
+    if(typeof t==='string') d.textContent=t;
+    else { d.textContent=t.txt; d.className='go'; d.setAttribute('role','button');
+      d.addEventListener('click',ev=>{ ev.stopPropagation(); travel(t.go); }); }
+    hintsEl.appendChild(d); });
+}
 
 function togglePlay(){
   if(audioEl&&!audioEl.paused){ audioEl.pause(); }
@@ -544,30 +755,35 @@ mplay.addEventListener('click',ev=>{ ev.stopPropagation(); togglePlay(); });
 mini.addEventListener('click',()=>expandCard());
 document.getElementById('minb').addEventListener('click',ev=>{ ev.stopPropagation(); minimizeCard(); });
 document.getElementById('close').addEventListener('click',ev=>{ ev.stopPropagation(); closeStory(); });
+// phones: the sheet opens at a peek so the neighbourhood stays readable above
+// it; the handle (or scrolling inside it) pulls it up to read the whole card
+document.getElementById('grab').addEventListener('click',ev=>{ ev.stopPropagation(); card.classList.toggle('full'); });
+card.addEventListener('scroll',()=>{ if(card.scrollTop>40&&!DOCK()) card.classList.add('full'); },{passive:true});
 
 /* enter — arrive at Bill himself, card open, greeting playing */
 /* pointer-aware affordances — trackpad/mouse users get spoken-word-friendly
    controls (a laptop reveal can be coached blind over the phone) */
 const FINE = matchMedia('(pointer: fine)').matches;
-if(FINE) hint.textContent='Click a light to visit its story · drag to turn the sky · + / − to zoom';
+hint.textContent = FINE ? 'Click any name to go there · ✦ Whole sky shows everyone'
+                         : 'Tap any name to go there';
 document.getElementById('enter').addEventListener('click',()=>{
   fflEnterEvent();
   ensureCtx(); intro.classList.add('gone'); hint.classList.add('on');
-  layersEl.classList.add('on'); navEl.classList.add('on');
-  setTimeout(()=>openStory('center'), reduced?0:900);
+  layersEl.classList.add('on'); navEl.classList.add('on'); trailEl.classList.add('on');
+  // start from a person (their own link, else Bill) rather than the whole sky
+  setTimeout(()=>travel(startId()), reduced?0:900);
   setTimeout(()=>hint.classList.remove('on'), FINE?14000:10000);
 });
 document.getElementById('zin').addEventListener('click',ev=>{ ev.stopPropagation();
   cam.tzoom=clampZ(cam.tzoom*1.3); });
 document.getElementById('zout').addEventListener('click',ev=>{ ev.stopPropagation();
-  cam.tzoom=clampZ(cam.tzoom/1.3); });
-document.getElementById('zhome').addEventListener('click',ev=>{ ev.stopPropagation();
-  levelSky(); flyTo(0,0,0,1); });
+  if(focus) showWholeSky(); else cam.tzoom=clampZ(cam.tzoom/1.3); });
+document.getElementById('zhome').addEventListener('click',ev=>{ ev.stopPropagation(); showWholeSky(); });
 addEventListener('keydown',e=>{
   if(!intro.classList.contains('gone')) return;
-  if(e.key==='Escape'){ if(focus) closeStory(); return; }
+  if(e.key==='Escape'){ if(card.classList.contains('open')) closeStory(); else if(focus) showWholeSky(); return; }
   if(e.key==='+'||e.key==='='){ cam.tzoom=clampZ(cam.tzoom*1.2); }
-  else if(e.key==='-'||e.key==='_'){ cam.tzoom=clampZ(cam.tzoom/1.2); }
+  else if(e.key==='-'||e.key==='_'){ if(focus) showWholeSky(); else cam.tzoom=clampZ(cam.tzoom/1.2); }
   else if(e.key.indexOf('Arrow')===0){
     const s=0.12/cam.zoom;
     if(e.key==='ArrowLeft'){cam.tx-=s;} if(e.key==='ArrowRight'){cam.tx+=s;}
@@ -577,23 +793,22 @@ addEventListener('keydown',e=>{
   }
 });
 
-/* picking */
+/* picking — against where each light was actually DRAWN last frame (stories
+   drift, and the neighbourhood is gathered away from its world position).
+   In the neighbourhood the whole name is a target, not just the dot, so a TV
+   pointer or a thumb can take it easily. */
 function pick(mx,my){
+  if(focus){ let best=null,bd=1e9;
+    for(const id in P){ const Q=P[id]; if(!Q.lay||Q.m<0.5) continue;
+      const b=Q.lay.box;
+      if(mx>=Q.x+b[0]&&mx<=Q.x+b[2]&&my>=Q.y+b[1]&&my<=Q.y+b[3]) return id;
+      const dd=Math.hypot(mx-Q.x,my-Q.y); if(dd<Math.max(22,Q.r+12)&&dd<bd){ bd=dd; best=id; } }
+    if(best) return best; }
   let best=null,bd=1e9;
-  // Stories DRIFT: they are drawn at pos+nodeDrift but were hit-tested at bare
-  // pos, so the clickable target sat up to ~17px away from the visible star and
-  // wandered continuously. Pick where the eye sees it, not where the data says.
-  const nowT=performance.now();
-  pickList.forEach(s=>{ if(!nodeVisible(s)) return;
-    const dr = s.isPerson ? [0,0] : nodeDrift(s,nowT);
-    const [px,py,pr,raw]=project(s.pos.x+dr[0],s.pos.y+dr[1],s.pos.d);
-    // once the sky can turn, a node can end up BEHIND the camera. project()
-    // clamps it rather than letting it invert through, but it would still sit
-    // there catching taps aimed at whatever is actually in front.
-    if(raw<=0.16) return;
-    const r=Math.max(26,30*pr*cam.zoom);
-    const dd=Math.hypot(mx-px,my-py);
-    if(dd<r&&dd<bd){bd=dd;best=s.id;} });
+  for(const id in P){ const Q=P[id]; if(!Q.vis||!Q.front||(Q.lay&&Q.m>=0.5)) continue;
+    const r=focus ? Math.max(12,Q.r*3) : Math.max(26,Q.r*4.2);
+    const dd=Math.hypot(mx-Q.x,my-Q.y);
+    if(dd<r&&dd<bd){ bd=dd; best=id; } }
   return best;
 }
 
@@ -603,7 +818,8 @@ function setLayer(l){
   gcount('flightlog-layer-'+l,'Layer: '+l);
   LAYER=l;
   layersEl.querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x.dataset.l===l));
-  if(focus && !nodeVisible(byId[focus])){ hideAllPanels(); focus=null; flyTo(0,0,0,1); levelSky(); }
+  if(focus && !nodeVisible(byId[focus])) showWholeSky();
+  LAY.key='';
 }
 layersEl.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>setLayer(b.dataset.l)));
 
@@ -638,7 +854,9 @@ cvs.addEventListener('pointermove',e=>{
     p.x=e.clientX; p.y=e.clientY;
     const q=[...ptrs.values()];
     const d=Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y);
-    if(pinchD0>0){ cam.tzoom=clampZ(pinchZ0*d/pinchD0); moved=true; if(focus&&!minimized) minimizeCard(); }
+    if(pinchD0>0){ moved=true;
+      if(focus){ if(d/pinchD0<0.78) showWholeSky(); }
+      else cam.tzoom=clampZ(pinchZ0*d/pinchD0); }
     // two-finger centroid drag pans — with one finger now orbiting, this is how
     // touch keeps a way to reach off-centre parts of the sky
     const cx=(q[0].x+q[1].x)/2, cy=(q[0].y+q[1].y)/2;
@@ -656,16 +874,21 @@ function endPtr(e){
     // pill and glides there at the reader's current zoom, so exploring the sky
     // never forces you back through a full card. Maximised keeps today's
     // behaviour — a tap opens the next card.
-    if(id){ if(id!==focus) travel(id, minimized); else if(minimized) expandCard(); }
-    else if(focus&&!minimized) minimizeCard();
+    // (browse mode only on phones: on a laptop or the TV the card sits beside
+    // the neighbourhood, so a chosen name always opens it)
+    if(id){ if(id!==focus) travel(id, minimized&&!DOCK());
+            else if(!card.classList.contains('open')) expandCard(); }
+    else if(focus&&!minimized&&card.classList.contains('open')&&!DOCK()) minimizeCard();
   }
   if(ptrs.size<2){ pinchD0=0; panC0=null; }
 }
 cvs.addEventListener('pointerup',endPtr);
 cvs.addEventListener('pointercancel',e=>{ ptrs.delete(e.pointerId); if(ptrs.size<2) pinchD0=0; });
+// In a neighbourhood, zooming OUT (a deliberate amount, not a stray flick of
+// the trackpad) steps back to the whole sky; zooming in does nothing there.
 cvs.addEventListener('wheel',e=>{ e.preventDefault();
+  if(focus){ if(e.deltaY>0){ wheelOut+=e.deltaY; if(wheelOut>160) showWholeSky(); } else wheelOut=0; return; }
   cam.tzoom=clampZ(cam.tzoom*Math.exp(-e.deltaY*0.0012));
-  if(focus&&!minimized&&Math.abs(e.deltaY)>4) minimizeCard();
 },{passive:false});
 
 /* hover feedback (fine pointers): cursor + label glow make clickability discoverable */
@@ -681,15 +904,175 @@ function nodeDrift(s,t){ if(reduced) return [0,0];
   const p=s.phase||0; return [Math.sin(t*0.00021+p)*0.012, Math.cos(t*0.00017+p*1.7)*0.012]; }
 stories.forEach((s,i)=>s.phase=i*2.39996);
 
+/* ---------- neighbourhood layout (screen space) ----------
+   Bands top to bottom: parents (or a story's people), the centre light with
+   partners to its left and siblings to its right, children, and on narrow
+   screens the stories as rows. On wide screens the stories stand in two
+   columns at the sides instead. Every label is measured before it is placed,
+   rows wrap instead of colliding, and if the whole thing does not fit the
+   font steps down until it does. */
+const lblOf=id=>{ const n=byId[id]; return n.isPerson?n.label:n.title; };
+const FONT=(w,fs)=>w+' '+fs.toFixed(1)+'px "Instrument Sans",sans-serif';
+function measure(txt,fs,w){ ctx.font=FONT(w||500,fs); return ctx.measureText(txt).width; }
+function fitText(txt,fs,maxW,w){ if(measure(txt,fs,w)<=maxW) return txt;
+  let t=txt; while(t.length>4 && measure(t+'…',fs,w)>maxW) t=t.slice(0,-1);
+  return t.trimEnd()+'…'; }
+
+function tryLayout(fid,g,A,fsN,fsF){
+  const map={}, gapX=fsN*1.5;
+  const dotN=Math.max(5,fsN*0.42), dotF=Math.max(11,fsF*0.6);
+  const cols = A.w>=740 && g.side.length>0;
+  let fits=true, bx0=A.x, bx1=A.x+A.w;
+  if(cols){
+    // one column of stories down the left when it fits (titles stay whole);
+    // two columns, one each side, only when there are too many for one
+    const one=A.h/g.side.length>=fsN*2.1;
+    const maxCol=A.w*(one?0.42:0.28), L=one?g.side.length:Math.ceil(g.side.length/2);
+    const txts=g.side.map(id=>fitText(lblOf(id),fsN,maxCol));
+    const colW=Math.max(...txts.map(t=>measure(t,fsN)))+dotN*2+12;
+    const step=Math.min(fsN*3.0, A.h/L);
+    if(step<fsN*1.75) fits=false;
+    const cy=A.y+A.h/2;
+    g.side.forEach((id,i)=>{ const left=i<L, j=left?i:i-L, cnt=left?L:g.side.length-L;
+      const y=cy+(j-(cnt-1)/2)*step;
+      const x=left? A.x+colW-dotN : A.x+A.w-colW+dotN;
+      const tw=measure(txts[i],fsN), off=dotN+10, hh=Math.max(fsN*0.8,step*0.48);
+      map[id]={x,y,r:dotN,fs:fsN,txt:txts[i],align:left?'right':'left',
+               lx:left?-off:off, ly:fsN*0.36,
+               box:left?[-off-tw-6,-hh,dotN+6,hh]:[-dotN-6,-hh,off+tw+6,hh]}; });
+    bx0=A.x+colW+gapX*1.6; bx1=one?A.x+A.w:A.x+A.w-colW-gapX;
+  }
+  const bw=bx1-bx0, cx=(bx0+bx1)/2;
+  if(bw<fsN*7) fits=false;
+  const itemH=dotN*2+fsN*1.45+4, subGap=fsN*0.55;
+  // a crowded row of people wraps each name (first name / surname) rather
+  // than stacking relatives one under another, which reads as descent
+  const split2=(t,fs)=>{ const w=t.split(/\s+/); if(w.length<2) return [t]; let best=null;
+    for(let i=1;i<w.length;i++){ const a=w.slice(0,i).join(' '), b=w.slice(i).join(' ');
+      const m=Math.max(measure(a,fs),measure(b,fs)); if(!best||m<best.m) best={a,b,m}; }
+    return [best.a,best.b]; };
+  // "m. 1965" where the data has it (Bill married twice), else "married"
+  const mLabel=id=>{ const e=(byId[fid].kin||[]).concat(byId[id].kin||[])
+      .find(k=>k.type==='spouse'&&(k.to===id||k.to===fid)&&k.label); return e?e.label:'married'; };
+  const capOf=id=>!byId[fid].isPerson?null:g.mid.includes(id)?mLabel(id):g.sib.includes(id)?'sibling':null;
+  const capH=fsN*0.95;
+  const pack=ids=>{ const rows=[]; let cur=[],cw=0;
+    const one=ids.map(id=>measure(lblOf(id),fsN)).reduce((s,w)=>s+w+gapX,-gapX);
+    const wrap=one>bw && ids.length>1 && byId[ids[0]].isPerson;
+    ids.forEach(id=>{
+      const lines=(wrap?split2(lblOf(id),fsN):[lblOf(id)]).map(t=>fitText(t,fsN,Math.max(40,bw)));
+      const w=Math.max(...lines.map(t=>measure(t,fsN)),dotN*2);
+      if(cur.length && cw+gapX+w>bw){ rows.push({items:cur,w:cw}); cur=[]; cw=0; }
+      cw+=(cur.length?gapX:0)+w; cur.push({id,txt:lines.length>1?lines:lines[0],w,n:lines.length,cap:capOf(id)}); });
+    if(cur.length) rows.push({items:cur,w:cw});
+    rows.forEach(r=>r.h=itemH+(Math.max(...r.items.map(o=>o.n))-1)*fsN*1.15
+                         +(r.items.some(o=>o.cap)?capH:0));
+    return rows; };
+  const bands=[];
+  const rowsBand=ids=>{ const r=pack(ids);
+    if(r.length) bands.push({kind:'rows',rows:r,h:r.reduce((s,x)=>s+x.h,0)+(r.length-1)*subGap}); };
+  rowsBand(g.up);
+  // centre band: partners inline on the left, siblings on the right, when they fit
+  // the centre name wraps onto a second line rather than being cut short
+  let fTxt=lblOf(fid);
+  if(measure(fTxt,fsF,600)>bw){ const w=fTxt.split(/\s+/); let best=null;
+    for(let i=1;i<w.length;i++){ const a=w.slice(0,i).join(' '), b=w.slice(i).join(' ');
+      const m=Math.max(measure(a,fsF,600),measure(b,fsF,600)); if(!best||m<best.m) best={a,b,m}; }
+    fTxt = best ? [fitText(best.a,fsF,bw,600), fitText(best.b,fsF,bw,600)] : fitText(fTxt,fsF,bw,600); }
+  const fLines=Array.isArray(fTxt)?fTxt:[fTxt];
+  const fW=Math.max(...fLines.map(t=>measure(t,fsF,600)),dotF*2);
+  const side=ids=>ids.map(id=>{ const txt=fitText(lblOf(id),fsN,bw/3); return {id,txt,w:measure(txt,fsN)}; });
+  const L_=side(g.mid), R_=side(g.sib);
+  const sw=a=>a.reduce((s,o)=>s+o.w+gapX,0);
+  const room=(bw-fW)/2-gapX*1.2;
+  const inline = sw(L_)<=room && sw(R_)<=room;
+  const fH=dotF*2+fsF*(1.45+1.15*(fLines.length-1))+4;
+  bands.push({kind:'focus',h:Math.max(fH, inline&&(L_.length||R_.length)?itemH+capH:0)});
+  if(!inline) rowsBand(g.mid.concat(g.sib));
+  rowsBand(g.down);
+  if(!cols) rowsBand(g.side);
+  const content=bands.reduce((s,b)=>s+b.h,0);
+  const minGap=fsN*1.0;
+  if(content+minGap*(bands.length-1)>A.h) fits=false;
+  const gap=Math.max(minGap, Math.min(fsN*4.2,(A.h-content)/(bands.length+1)));
+  const stack=content+gap*(bands.length-1);
+  let y=A.y+Math.max(0,(A.h-stack)/2);
+  bands.forEach(b=>{
+    if(b.kind==='focus'){
+      const dy=y+dotF;
+      map[fid]={x:cx,y:dy,r:dotF,fs:fsF,txt:fTxt,align:'center',lx:0,ly:dotF+fsF*1.05,focus:true,
+                box:[-fW/2-6,-dotF-6,fW/2+6,dotF+fsF*(1.4+1.15*(fLines.length-1))]};
+      if(inline){
+        let cur=cx-fW/2-gapX*1.8;
+        L_.forEach(o=>{ const x=cur-o.w/2; cur-=o.w+gapX;
+          map[o.id]={x,y:dy,r:dotN,fs:fsN,txt:o.txt,align:'center',lx:0,ly:dotN+fsN*1.05,cap:capOf(o.id),
+                     box:[-o.w/2-6,-dotN-6,o.w/2+6,dotN+fsN*1.4+capH]}; });
+        cur=cx+fW/2+gapX*1.8;
+        R_.forEach(o=>{ const x=cur+o.w/2; cur+=o.w+gapX;
+          map[o.id]={x,y:dy,r:dotN,fs:fsN,txt:o.txt,align:'center',lx:0,ly:dotN+fsN*1.05,cap:capOf(o.id),
+                     box:[-o.w/2-6,-dotN-6,o.w/2+6,dotN+fsN*1.4+capH]}; });
+      }
+    } else {
+      let ry=y;
+      b.rows.forEach(r=>{ let x0=cx-r.w/2;
+        r.items.forEach(o=>{ const x=x0+o.w/2; x0+=o.w+gapX;
+          map[o.id]={x,y:ry+dotN,r:dotN,fs:fsN,txt:o.txt,align:'center',lx:0,ly:dotN+fsN*1.05,cap:o.cap,
+                     box:[-o.w/2-gapX*0.4,-dotN-subGap*0.5,o.w/2+gapX*0.4,dotN+fsN*(1.4+1.15*(o.n-1))+(o.cap?capH:0)]}; });
+        ry+=r.h+subGap; });
+    }
+    y+=b.h+gap; });
+  return {map,fits};
+}
+function layoutFocus(fid,A){
+  const g=neighborhood(fid), base=Math.min(A.w*0.62,A.h);
+  let fsN=Math.min(30,Math.max(14,base*0.046)), fsF=Math.min(48,Math.max(20,base*0.072));
+  let res=null;
+  for(let i=0;i<10;i++){ res=tryLayout(fid,g,A,fsN,fsF);
+    if(res.fits||fsN<=10.5) break;
+    fsN=Math.max(10.5,fsN*0.9); fsF=Math.max(15,fsF*0.92); }
+  return res.map;
+}
+// the part of the screen the neighbourhood may use: below the trail, beside a
+// docked card or above a bottom-sheet one, clear of the pill and the buttons
+function focusArea(){
+  const tb=trailEl.getBoundingClientRect();
+  const top=Math.max(tb.bottom||0, 52)+18;
+  let x=18, w=W-36, h=H-top-22;
+  if(card.classList.contains('open')){
+    if(DOCK()) w=W-card.offsetWidth-16-36-18;
+    else h=H-card.offsetHeight-top-14;
+  } else {
+    if(mini.classList.contains('on')) h-=70;
+    if(!DOCK()) { w-=46; }              // the zoom buttons at the right edge
+  }
+  return {x,y:top,w:Math.max(120,w),h:Math.max(120,h)};
+}
+let LAY={key:'',map:{}};
+if(document.fonts&&document.fonts.addEventListener)
+  document.fonts.addEventListener('loadingdone',()=>{ LAY.key=''; });
+function currentLayout(){
+  if(!focus){ LAY={key:'',map:{}}; return LAY.map; }
+  const A=focusArea();
+  const key=focus+'|'+LAYER+'|'+[A.x,A.y,A.w,A.h].map(v=>Math.round(v/6)).join(',');
+  if(key!==LAY.key) LAY={key,map:layoutFocus(focus,A)};
+  return LAY.map;
+}
+
+const P={};            // what was drawn last frame, per light — picking reads this
+const mEase={}, slot={};
+let fm=0;              // 0 = whole sky … 1 = in a neighbourhood
 let lastT=null;
 function draw(t){
   sampleLevel();
   // camera easing — time-based so throttled frames never slow the flight
   const dt=Math.min(0.1,((lastT==null?16:t-lastT))/1000); lastT=t;
   const e=reduced?1:(1-Math.exp(-dt*4.2));
+  const e2=reduced?1:(1-Math.exp(-dt*5.0));
   cam.x+=(cam.tx-cam.x)*e; cam.y+=(cam.ty-cam.y)*e; cam.z+=(cam.tz-cam.z)*e;
   cam.zoom+=(cam.tzoom-cam.zoom)*e;
   cam.yaw+=(cam.tyaw-cam.yaw)*e; cam.pitch+=(cam.tpitch-cam.pitch)*e;
+  fm+=((focus?1:0)-fm)*e2; if(Math.abs((focus?1:0)-fm)<0.002) fm=focus?1:0;
+  const L=currentLayout();
 
   ctx.clearRect(0,0,W,H);
   // nebula ground
@@ -704,139 +1087,158 @@ function draw(t){
     ctx.fillStyle='#cfd8ea'; ctx.beginPath(); ctx.arc(px,py,st.r,0,6.283); ctx.fill(); });
   ctx.globalAlpha=1;
 
-  const [ox,oy]=project(0,0,0.42);
+  // where every light is this frame: its world position, pulled toward its
+  // neighbourhood slot by m (0 = in the sky, 1 = gathered)
+  pickList.forEach(n=>{
+    const dr=n.isPerson?[0,0]:nodeDrift(n,t);
+    const [px,py,pr,raw]=project(n.pos.x+dr[0],n.pos.y+dr[1],n.pos.d);
+    const ti=tier(n.id);
+    const base=n.isPerson?(ti===2?26:ti===1?10:6):(ti===2?24:ti===1?13:7.5);
+    // outside a neighbourhood's own lights the sky shrinks back as well as dims
+    const wr=Math.max(n.isPerson?1.8:2.2, ez(n.id,base)*pr*cam.zoom)*(L[n.id]?1:1-0.45*fm);
+    const lay=L[n.id], tm=lay?1:0;
+    let m=mEase[n.id]||0; m+=(tm-m)*e2; if(Math.abs(tm-m)<0.003) m=tm; mEase[n.id]=m;
+    if(lay){ const s=slot[n.id];
+      if(!s||m<0.03) slot[n.id]={x:lay.x,y:lay.y,r:lay.r,lay};
+      else { s.x+=(lay.x-s.x)*e2; s.y+=(lay.y-s.y)*e2; s.r+=(lay.r-s.r)*e2; s.lay=lay; } }
+    const s=slot[n.id], k=(m>0&&s)?m:0;
+    P[n.id]={x:k?px+(s.x-px)*k:px, y:k?py+(s.y-py)*k:py, r:k?wr+(s.r-wr)*k:wr,
+             m:k, vis:nodeVisible(n), front:raw>0.16, lay:k?s.lay:null};
+  });
+  const bgA=1-0.87*fm;        // everyone outside the neighbourhood, faint
+
   // kinship threads (silver, solid) + person→story appearances (silver, dotted)
   if(showFamily()){
-    kinThreads.forEach(th=>{
-      const A=byId[th.a], B=byId[th.b];
-      const [ax,ay]=project(A.pos.x,A.pos.y,A.pos.d);
-      const [bx,by]=project(B.pos.x,B.pos.y,B.pos.d);
-      const hot = focus && (th.a===focus||th.b===focus);
-      ctx.beginPath(); ctx.moveTo(ax,ay);
-      const mx=(ax+bx)/2, my=(ay+by)/2 - Math.hypot(bx-ax,by-ay)*0.08;
-      ctx.quadraticCurveTo(mx,my,bx,by);
-      if(hot){ ctx.strokeStyle='rgba(214,229,248,0.75)'; ctx.lineWidth=1.5;
-        ctx.shadowColor='rgba(214,229,248,0.7)'; ctx.shadowBlur=10; }
-      else { ctx.strokeStyle='rgba(169,196,232,0.24)'; ctx.lineWidth=0.9; ctx.shadowBlur=0; }
-      ctx.stroke(); ctx.shadowBlur=0;
-    });
-    if(showStories()) psLinks.forEach(l=>{
-      const P=byId[l.p], S=byId[l.s];
-      const [ax,ay]=project(P.pos.x,P.pos.y,P.pos.d);
-      const [bx,by]=project(S.pos.x+nodeDrift(S,t)[0],S.pos.y+nodeDrift(S,t)[1],S.pos.d);
-      const hot = (playingId===l.s)||(focus===l.p)||(focus===l.s);
-      ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
+    ctx.globalAlpha=bgA;
+    kinThreads.forEach(th=>{ const A=P[th.a], B=P[th.b];
+      ctx.beginPath(); ctx.moveTo(A.x,A.y);
+      const mx=(A.x+B.x)/2, my=(A.y+B.y)/2 - Math.hypot(B.x-A.x,B.y-A.y)*0.08;
+      ctx.quadraticCurveTo(mx,my,B.x,B.y);
+      ctx.strokeStyle='rgba(169,196,232,0.24)'; ctx.lineWidth=0.9; ctx.stroke(); });
+    if(showStories()) psLinks.forEach(l=>{ const A=P[l.p], B=P[l.s];
+      const hot=!focus&&playingId===l.s;
+      ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y);
       ctx.setLineDash([2,6]);
       ctx.strokeStyle=hot?'rgba(214,229,248,0.6)':'rgba(169,196,232,0.14)';
       ctx.lineWidth=hot?1.2:0.7;
       if(hot&&!reduced) ctx.lineDashOffset=-t*0.015;
-      ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset=0;
-    });
+      ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset=0; });
+    ctx.globalAlpha=1;
+  }
+  // story threads
+  if(showStories()){
+    ctx.globalAlpha=bgA;
+    threads.forEach(th=>{ const A=P[th.a], B=P[th.b];
+      const hot=!focus&&playingId&&(th.a===playingId||th.b===playingId);
+      const mx=(A.x+B.x)/2, my=(A.y+B.y)/2 - Math.hypot(B.x-A.x,B.y-A.y)*0.14;
+      ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.quadraticCurveTo(mx,my,B.x,B.y);
+      if(hot){ ctx.strokeStyle='rgba(255,217,163,0.85)'; ctx.lineWidth=1.8;
+        ctx.shadowColor='rgba(255,217,163,0.8)'; ctx.shadowBlur=12;
+        ctx.setLineDash([3,7]); ctx.lineDashOffset = reduced?0:-t*0.02; }
+      else { ctx.strokeStyle='rgba(245,181,103,0.20)'; ctx.lineWidth=0.9; ctx.shadowBlur=0; ctx.setLineDash([]); }
+      ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur=0; });
+    // faint spokes from Bill to his memories — brighten while he greets
+    const spokeHot=playingId==='center', B0=P['bill'];
+    ctx.globalAlpha=1-fm;
+    if(B0&&fm<0.99) stories.forEach(s=>{ if(s.voice&&s.voice!=='bill') return;
+      if(s.id==='center') return;
+      const Q=P[s.id];
+      ctx.beginPath(); ctx.moveTo(B0.x,B0.y); ctx.lineTo(Q.x,Q.y);
+      ctx.strokeStyle=spokeHot?'rgba(255,217,163,'+(0.10+level*0.25)+')':'rgba(245,181,103,0.05)';
+      ctx.lineWidth=spokeHot?0.9:0.6; ctx.stroke(); });
+    ctx.globalAlpha=1;
   }
 
-  // threads
-  if(showStories()) threads.forEach(th=>{
-    const A=byId[th.a], B=byId[th.b];
-    const [ax,ay]=project(A.pos.x+nodeDrift(A,t)[0],A.pos.y+nodeDrift(A,t)[1],A.pos.d);
-    const [bx,by]=project(B.pos.x+nodeDrift(B,t)[0],B.pos.y+nodeDrift(B,t)[1],B.pos.d);
-    const hot = playingId && (th.a===playingId||th.b===playingId);
-    const mx=(ax+bx)/2, my=(ay+by)/2 - Math.hypot(bx-ax,by-ay)*0.14;
-    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.quadraticCurveTo(mx,my,bx,by);
-    if(hot){ ctx.strokeStyle='rgba(255,217,163,0.85)'; ctx.lineWidth=1.8;
-      ctx.shadowColor='rgba(255,217,163,0.8)'; ctx.shadowBlur=12;
-      ctx.setLineDash([3,7]); ctx.lineDashOffset = reduced?0:-t*0.02; }
-    else { ctx.strokeStyle='rgba(245,181,103,0.20)'; ctx.lineWidth=0.9;
-      ctx.shadowBlur=0; ctx.setLineDash([]); }
-    ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur=0;
-  });
+  // the neighbourhood's own threads: from the centre out to each neighbour
+  const F=focus&&P[focus];
+  if(F) Object.keys(L).forEach(id=>{ if(id===focus) return; const Q=P[id]; if(!Q||!Q.m) return;
+    const n=byId[id], kin=n.isPerson&&byId[focus].isPerson;
+    // threads to anything below leave from under the centre's name, not through it
+    const fb=F.lay&&Q.y>F.y+F.lay.box[3] ? F.lay.box[3]+4 : 0, sx=F.x, sy=F.y+fb;
+    const mx=(sx+Q.x)/2, my=(sy+Q.y)/2 - Math.hypot(Q.x-sx,Q.y-sy)*0.05;
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.quadraticCurveTo(mx,my,Q.x,Q.y);
+    ctx.globalAlpha=Q.m;
+    if(kin){ ctx.strokeStyle='rgba(214,229,248,0.42)'; ctx.lineWidth=1.4; }
+    else { ctx.strokeStyle=n.isPerson?'rgba(214,229,248,0.36)':'rgba(255,217,163,0.40)';
+      ctx.lineWidth=1.2; ctx.setLineDash([2,6]); ctx.lineDashOffset=reduced?0:-t*0.012; }
+    ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset=0; ctx.globalAlpha=1; });
 
-  // faint spokes from orb to each story (memory emanating from Bill) — brighten while he greets
-  const spokeHot = playingId==='center';
-  const billP = byId['bill'];
-  const [bx0,by0] = billP&&billP.pos ? project(billP.pos.x,billP.pos.y,billP.pos.d) : [ox,oy];
-  if(showStories()) stories.forEach(s=>{ if(s.voice&&s.voice!=='bill') return; // spokes are Bill's memories
-    if(s.id==='center') return;                       // the greeting IS his, not a spoke off it
-    const [px,py]=project(s.pos.x+nodeDrift(s,t)[0],s.pos.y+nodeDrift(s,t)[1],s.pos.d);
-    ctx.beginPath(); ctx.moveTo(bx0,by0); ctx.lineTo(px,py);
-    ctx.strokeStyle=spokeHot?'rgba(255,217,163,'+(0.10+level*0.25)+')':'rgba(245,181,103,0.05)';
-    ctx.lineWidth=spokeHot?0.9:0.6; ctx.stroke(); });
+  // lights: the faint sky first, then the gathered neighbourhood on top
+  const order=pickList.filter(n=>P[n.id].vis).sort((a,b)=>P[a.id].m-P[b.id].m);
+  order.forEach(n=>drawLight(n,P[n.id],t,bgA));
+  requestAnimationFrame(draw);
+}
 
-  // person nodes — moonlight lights, generations receding into the distance
-  if(showFamily()) persons.forEach(p=>{
-    const [px,py,pr]=project(p.pos.x,p.pos.y,p.pos.d);
-    const active = p.id===focus;
-    const pt=tier(p.id);
-    // Floor was 5.5px, which flattened the whole far field: every person past
-    // d≈0.7 rendered identically. Dropped to 1.8 so distance actually reads.
-    const r=Math.max(1.8, ez(p.id, pt===2?26:pt===1?10:6)*pr*cam.zoom);
-    // glow and label offsets were tuned when r topped out near 13; at selection
-    // size they have to stop tracking r linearly or the halo washes the sky and
-    // the label drifts a hundred pixels off its own node.
-    const gr=Math.min(r*3.2, r+62);
+function drawLight(n,Q,t,bgA){
+  const id=n.id, active=id===focus, hot=id===playingId, hov=id===hoverId;
+  ctx.globalAlpha=bgA+(1-bgA)*Q.m;
+  const px=Q.x, py=Q.y;
+  if(n.isPerson){
+    const r=Q.r, gr=Math.min(r*3.2, r+62);
     const h=ctx.createRadialGradient(px,py,0,px,py,gr);
     h.addColorStop(0, active?'rgba(226,238,252,0.6)':'rgba(169,196,232,0.30)');
     h.addColorStop(1,'rgba(169,196,232,0)');
     ctx.fillStyle=h; ctx.beginPath(); ctx.arc(px,py,gr,0,6.283); ctx.fill();
     ctx.save(); ctx.translate(px,py); ctx.rotate(Math.PI/4);   // soft diamond
     ctx.fillStyle=active?'#eaf2fc':'#cfe0f5';
-    const rr=r*0.5; ctx.beginPath();
-    if(ctx.roundRect) ctx.roundRect(-r*0.85,-r*0.85,r*1.7,r*1.7,rr); else ctx.rect(-r*0.85,-r*0.85,r*1.7,r*1.7);
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(-r*0.85,-r*0.85,r*1.7,r*1.7,r*0.5); else ctx.rect(-r*0.85,-r*0.85,r*1.7,r*1.7);
     ctx.fill(); ctx.restore();
-    // Label size now TRACKS the node instead of running its own curve with an
-    // 10.5px floor — that floor put full-size text on nodes shrinking past it.
-    // Below legibility a base label simply goes, fading rather than popping;
-    // selected, connected and hovered are always named. This is what keeps the
-    // deep field readable once the 1999 import puts hundreds of stars back there.
-    const fs=r*2.0, keep=(pt>=1)||active||p.id===hoverId;
-    if(keep || fs>LBL_MIN){
-      const fade=keep?1:Math.min(1,(fs-LBL_MIN)/3.5);
-      ctx.font=((active||p.id===hoverId)?'600 ':'500 ')+Math.min(17,Math.max(9,fs))+'px "Instrument Sans",sans-serif';
-      ctx.textAlign='center';
-      ctx.globalAlpha=fade;
-      ctx.fillStyle=(active||p.id===hoverId)?'rgba(234,242,252,0.95)'
-        :pt===1?'rgba(200,218,240,0.88)':'rgba(169,196,232,0.8)';
-      ctx.fillText(p.label, px, py+r+Math.max(13,fs*1.5));
-      ctx.globalAlpha=1;
-    }
-  });
-
-  // nodes
-  if(showStories()) stories.forEach(s=>{
-    const [dx,dy]=nodeDrift(s,t);
-    const [px,py,pr]=project(s.pos.x+dx,s.pos.y+dy,s.pos.d);
-    const active = s.id===focus;
-    const hot = s.id===playingId;
-    const st=tier(s.id);
-    const r=Math.max(2.2, ez(s.id, st===2?24:st===1?13:7.5)*pr*cam.zoom*(hot?1+level*0.7:1));
-    const gr=Math.min(r*3.6, r+70);
+  } else {
+    const r=Q.r*(hot?1+level*0.7:1), gr=Math.min(r*3.6, r+70);
     const h=ctx.createRadialGradient(px,py,0,px,py,gr);
     h.addColorStop(0, hot?'rgba(255,225,180,0.75)':'rgba(255,217,163,0.4)');
     h.addColorStop(1,'rgba(245,181,103,0)');
     ctx.fillStyle=h; ctx.beginPath(); ctx.arc(px,py,gr,0,6.283); ctx.fill();
-    if(st===2){
-      // the sun's treatment, reused: a selected memory gets the spherical core
-      // the centre orb used to own -- lit from upper-left, falling to ember at
-      // the limb. Far more alive than a flat disc, and now it follows focus.
+    if(active){
       const core=ctx.createRadialGradient(px-r*0.25,py-r*0.3,r*0.1,px,py,r);
       core.addColorStop(0,'#fff4df'); core.addColorStop(0.5,'#ffd9a3'); core.addColorStop(1,'#e79a4f');
       ctx.fillStyle=core;
     } else ctx.fillStyle='#ffd9a3';
     ctx.beginPath(); ctx.arc(px,py,r,0,6.283); ctx.fill();
-    // label — always on; capped so zooming in never outgrows or hides them
-    const fs=r*1.6, keep=(st>=1)||active||s.id===hoverId||hot;
-    if(keep || fs>LBL_MIN){
-      const fade=keep?1:Math.min(1,(fs-LBL_MIN)/3.5);
-      ctx.font=((active||s.id===hoverId)?'600 ':'500 ')+Math.min(18,Math.max(9,fs))+'px "Instrument Sans",sans-serif';
-      ctx.textAlign='center';
-      ctx.globalAlpha=fade;
-      ctx.fillStyle=(active||s.id===hoverId)?'rgba(239,230,213,0.95)'
-        :st===1?'rgba(198,189,171,0.9)':'rgba(151,160,181,0.85)';
-      ctx.fillText(s.title, px, py+r+Math.max(14,fs*1.5));
-      ctx.globalAlpha=1;
-    }
-  });
+  }
+  // a story in the neighbourhood this visitor has not heard yet wears a ring
+  if(Q.m>0.05&&!n.isPerson&&!active&&!heard.has(id)){
+    ctx.globalAlpha=Q.m*(reduced?0.7:0.55+0.3*Math.sin(t*0.0028+(n.phase||0)));
+    ctx.strokeStyle='rgba(255,217,163,0.9)'; ctx.lineWidth=1.3;
+    ctx.beginPath(); ctx.arc(px,py,Q.r+5,0,6.283); ctx.stroke(); }
+  ctx.globalAlpha=1;
 
-  requestAnimationFrame(draw);
+  if(Q.lay){
+    // gathered: the measured, collision-free label from the layout
+    const lay=Q.lay;
+    ctx.globalAlpha=Q.m;
+    ctx.font=FONT((lay.focus||hov)?600:500, lay.fs);
+    ctx.textAlign=lay.align;
+    ctx.shadowColor='rgba(6,9,15,0.95)'; ctx.shadowBlur=7;
+    ctx.fillStyle = lay.focus||hov ? (n.isPerson?'rgba(240,246,253,0.98)':'rgba(250,240,222,0.98)')
+                  : n.isPerson ? 'rgba(206,222,242,0.92)' : 'rgba(236,222,198,0.92)';
+    const lines=Array.isArray(lay.txt)?lay.txt:[lay.txt];
+    lines.forEach((ln,i)=>ctx.fillText(ln, px+lay.lx, py+lay.ly+i*lay.fs*1.15));
+    if(lay.cap){ // how a partner or sibling relates to the centre, so a row
+                 // beside or under it never reads as a generation
+      ctx.font='italic '+(lay.fs*0.82).toFixed(1)+'px Newsreader,Georgia,serif';
+      ctx.fillStyle='rgba(169,196,232,0.85)';
+      ctx.fillText(lay.cap, px+lay.lx, py+lay.ly+(lines.length-1)*lay.fs*1.15+lay.fs*0.98); }
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
+    return;
+  }
+  // in the sky: the old rule (names only once they are big enough to read),
+  // and none at all while a neighbourhood is gathered
+  if(fm>0.98) return;
+  const ti=tier(id), r=Q.r;
+  const fs=n.isPerson?r*2.0:r*1.6, keep=(ti>=1)||active||hov||(!n.isPerson&&hot);
+  if(keep || fs>LBL_MIN){
+    const fade=(keep?1:Math.min(1,(fs-LBL_MIN)/3.5))*(1-fm);
+    ctx.font=FONT((active||hov)?600:500, Math.min(n.isPerson?17:18,Math.max(9,fs)));
+    ctx.textAlign='center';
+    ctx.globalAlpha=fade;
+    ctx.fillStyle = n.isPerson
+      ? ((active||hov)?'rgba(234,242,252,0.95)':ti===1?'rgba(200,218,240,0.88)':'rgba(169,196,232,0.8)')
+      : ((active||hov)?'rgba(239,230,213,0.95)':ti===1?'rgba(198,189,171,0.9)':'rgba(151,160,181,0.85)');
+    ctx.fillText(lblOf(id), px, py+r+Math.max(n.isPerson?13:14,fs*1.5));
+    ctx.globalAlpha=1;
+  }
 }
 requestAnimationFrame(draw);
 })();
